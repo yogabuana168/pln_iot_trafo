@@ -20,6 +20,7 @@ Template ini kompatibel dengan dokumentasi resmi FabKin dan mengikuti pola yang 
 - [Struktur Folder](folder-structure.md)
 - [Instalasi & Build](installation-build.md)
 - [Kustomisasi (SCSS/JS/Sidebar)](customization.md)
+- [Manajemen Menu Global](menu-management.md)
 - [Layouts (Default/Horizontal/Semibox, Light/Dark, RTL)](layouts.md)
 - [Aset & Ikon](assets.md)
 - [Konfigurasi Environment](environment.md)
