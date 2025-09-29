@@ -355,11 +355,44 @@ function updateIconModeVisibility() {
     const isIcon = document.documentElement.getAttribute("data-sidebar") === "icon";
     const hideSelectors = [
         '#sidebar .pe-nav-content',
-        '#sidebar .pe-menu-title'
+        '#sidebar .pe-menu-title',
+        '#sidebar .pe-nav-arrow'
     ];
     hideSelectors.forEach((selector) => {
         document.querySelectorAll(selector).forEach((el) => {
             el.style.display = isIcon ? 'none' : '';
+            el.style.visibility = isIcon ? 'hidden' : '';
+        });
+    });
+
+    // Also remove any stray text nodes inside links so only icons remain
+    document.querySelectorAll('#sidebar .pe-nav-link').forEach((link) => {
+        // Hide/show dedicated label span if present
+        const labelSpan = link.querySelector('.pe-nav-content');
+        if (labelSpan) {
+            labelSpan.style.display = isIcon ? 'none' : '';
+        }
+        // Hide/show arrow
+        const arrow = link.querySelector('.pe-nav-arrow');
+        if (arrow) arrow.style.display = isIcon ? 'none' : '';
+        // Process text nodes
+        link.childNodes.forEach((node) => {
+            if (node.nodeType === 3) { // text node
+                const current = node.textContent.trim();
+                if (current && !link.dataset.label) {
+                    link.dataset.label = current;
+                }
+                node.textContent = isIcon ? '' : (link.dataset.label || current);
+            }
         });
     });
 }
+
+// React when html[data-sidebar] changes from other triggers
+new MutationObserver((mutations) => {
+    for (const m of mutations) {
+        if (m.type === 'attributes' && m.attributeName === 'data-sidebar') {
+            updateIconModeVisibility();
+        }
+    }
+}).observe(document.documentElement, { attributes: true, attributeFilter: ['data-sidebar'] });
