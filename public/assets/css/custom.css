@@ -1,0 +1,14 @@
+/* Custom UI tweaks */
+
+/* Icon-only sidebar: show icons only when collapsed */
+[data-sidebar="icon"] #sidebar .pe-nav-content,
+[data-sidebar="icon"] #sidebar .pe-menu-title { display: none !important; }
+
+/* Center icons neatly */
+[data-sidebar="icon"] #sidebar .pe-nav-link { justify-content: center; }
+
+/* Hide arrows and submenus in icon mode */
+[data-sidebar="icon"] #sidebar .pe-nav-arrow { display: none !important; }
+[data-sidebar="icon"] #sidebar .pe-slide-menu { display: none !important; }
+
+

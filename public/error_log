@@ -1,0 +1,10 @@
+[29-Sep-2025 05:33:30 UTC] PHP Warning:  require(/home/gpscente/pln.gpscenter.id/public/../laravel_pln/vendor/autoload.php): Failed to open stream: No such file or directory in /home/gpscente/pln.gpscenter.id/public/index.php on line 14
+[29-Sep-2025 05:33:30 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/gpscente/pln.gpscenter.id/public/../laravel_pln/vendor/autoload.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/gpscente/pln.gpscenter.id/public/index.php:14
+Stack trace:
+#0 {main}
+  thrown in /home/gpscente/pln.gpscenter.id/public/index.php on line 14
+[29-Sep-2025 05:34:39 UTC] PHP Warning:  require(/home/gpscente/pln.gpscenter.id/public/../laravel_pln/vendor/autoload.php): Failed to open stream: No such file or directory in /home/gpscente/pln.gpscenter.id/public/index.php on line 14
+[29-Sep-2025 05:34:39 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/gpscente/pln.gpscenter.id/public/../laravel_pln/vendor/autoload.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/gpscente/pln.gpscenter.id/public/index.php:14
+Stack trace:
+#0 {main}
+  thrown in /home/gpscente/pln.gpscenter.id/public/index.php on line 14
