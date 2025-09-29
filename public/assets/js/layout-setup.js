@@ -102,6 +102,7 @@ function updateSimpleBar(value) {
         sidebarSimpleBarMenu.querySelectorAll('.pe-slide-menu.collapse.show').forEach(el => el.classList.remove('show'));
     }
     updateDashboardTriggerForIconMode();
+    updateIconModeVisibility();
 }
 // Function to handle radio button selection
 function handleRadioChange(event) {
@@ -207,6 +208,7 @@ toggleButton?.addEventListener("click", () => {
     updateSimpleBar(htmlElement.getAttribute("data-layout"));
     // Also adjust dashboard trigger immediately
     updateDashboardTriggerForIconMode();
+    updateIconModeVisibility();
     // Close any open header dropdowns to avoid overlaying content
     closeHeaderDropdowns();
 });
@@ -336,6 +338,7 @@ function updateDashboardTriggerForIconMode() {
 
 // Apply on initial load
 updateDashboardTriggerForIconMode();
+updateIconModeVisibility();
 
 // Helper: close open header dropdowns (profile/notifications/cart) to prevent overlay on content area
 function closeHeaderDropdowns() {
@@ -344,5 +347,19 @@ function closeHeaderDropdowns() {
     });
     document.querySelectorAll('header .dropdown-toggle[aria-expanded="true"]').forEach((btn) => {
         btn.setAttribute('aria-expanded', 'false');
+    });
+}
+
+// Hide sidebar labels/titles in icon mode (no custom CSS required)
+function updateIconModeVisibility() {
+    const isIcon = document.documentElement.getAttribute("data-sidebar") === "icon";
+    const hideSelectors = [
+        '#sidebar .pe-nav-content',
+        '#sidebar .pe-menu-title'
+    ];
+    hideSelectors.forEach((selector) => {
+        document.querySelectorAll(selector).forEach((el) => {
+            el.style.display = isIcon ? 'none' : '';
+        });
     });
 }
