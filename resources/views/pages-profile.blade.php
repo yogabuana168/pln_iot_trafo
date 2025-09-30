@@ -11,7 +11,7 @@
 
         <div class="card overflow-hidden">
             <div class="card-body h-176px"
-                style="background-image: url('assets/images/background.png');background-repeat: no-repeat;background-position: right;">
+                style="background-image: url('{{ asset('assets/images/background.png') }}');background-repeat: no-repeat;background-position: right;">
             </div>
             <div class="mt-2">
                 <div class="card-body p-5">
@@ -22,7 +22,7 @@
                     <div class="d-flex flex-wrap align-items-start gap-5">
                         <div class="mt-n12 flex-shrink-0">
                             <div class="position-relative d-inline-block">
-                                <img src="assets/images/avatar/avatar-1.jpg" alt="Avatar Image"
+                                <img src="{{ asset('assets/images/dashboard/3d-rendering-avatar-min.png') }}" alt="Avatar Image"
                                     class="h-128px w-128px border border-4 border-light-subtle shadow-lg">
                                 <span class="position-absolute profile-dot bg-success rounded-circle">
                                     <span class="visually-hidden">unread messages</span>

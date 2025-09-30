@@ -15,9 +15,13 @@
                 <div class="col-12 col-md-8 col-lg-6 col-xl-5">
                     <div class="card mx-xxl-8">
                         <div class="card-body py-12 px-8">
-                            <img src="assets/images/logo-dark.png" alt="Logo Dark" height="30"
-                                class="mb-4 mx-auto d-block">
-                            <h6 class="mb-3 mb-8 fw-medium text-center">Create Your Account in Minutes</h6>
+                            @php
+                                $logoIconPath = DB::table('site_settings')->where('setting_key', 'logo_icon_path')->value('setting_value');
+                                $logoIconUrl = $logoIconPath ? asset($logoIconPath) : (($logoPath = DB::table('site_settings')->where('setting_key', 'logo_path')->value('setting_value')) ? asset($logoPath) : asset('assets/images/logo-dark.png'));
+                            @endphp
+                            <img src="{{ $logoIconUrl }}" alt="Logo Icon" height="40" width="40"
+                                class="mb-4 mx-auto d-block" style="object-fit: contain;">
+                            <h6 class="mb-3 mb-8 fw-medium text-center">Create Your PLN GPS Center Account</h6>
                             <form>
                                 <div class="row g-4">
                                     <div class="col-6">
@@ -69,10 +73,6 @@
                                                 class="bi bi-box-arrow-in-right ms-1 fs-16"></i></button>
                                     </div>
                                 </div>
-                                <button type="submit"
-                                    class="mb-10 btn btn-outline-light w-full mb-4 d-flex align-items-center gap-2 justify-content-center text-muted"><img
-                                        src="assets/images/google.png" alt="Google Image" class="h-20px w-20px">Sign in with
-                                    google</button>
                                 <p class="mb-0 fw-semibold position-relative text-center fs-12">Already have an account? <a
                                         href="auth-signin" class="text-decoration-underline text-primary">Sign In here</a>
                                 </p>
@@ -81,7 +81,10 @@
                             </div>
                         </div>
                     </div>
-                    <p class="position-relative text-center fs-12 mb-0">© 2025 Fabkin. Crafted with ❤️ by Pixeleyez</p>
+                    @php
+                        $footerText = class_exists('\App\Helpers\SiteSettings') ? \App\Helpers\SiteSettings::getFooterText() : (DB::table('site_settings')->where('setting_key', 'footer_text')->value('setting_value') ?? '© ' . date('Y') . ' PLN GPS Center. Design & Develop by Pixeleyez');
+                    @endphp
+                    <p class="position-relative text-center fs-12 mb-0">{!! $footerText !!}</p>
                 </div>
             </div>
         </div>

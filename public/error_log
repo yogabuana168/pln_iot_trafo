@@ -8,3 +8,5 @@ Stack trace:
 Stack trace:
 #0 {main}
   thrown in /home/gpscente/pln.gpscenter.id/public/index.php on line 14
+[30-Sep-2025 05:36:47 UTC] PHP Warning:  PHP Startup: Invalid date.timezone value 'Asia/Hongkong', using 'UTC' instead in Unknown on line 0
+[30-Sep-2025 05:38:10 UTC] PHP Warning:  PHP Startup: Invalid date.timezone value 'Asia/Hongkong', using 'UTC' instead in Unknown on line 0

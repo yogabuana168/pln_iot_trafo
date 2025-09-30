@@ -339,6 +339,7 @@ function updateDashboardTriggerForIconMode() {
 // Apply on initial load
 updateDashboardTriggerForIconMode();
 updateIconModeVisibility();
+updateLogoForSidebarState(document.documentElement.getAttribute("data-sidebar") === "icon");
 
 // Helper: close open header dropdowns (profile/notifications/cart) to prevent overlay on content area
 function closeHeaderDropdowns() {
@@ -365,6 +366,9 @@ function updateIconModeVisibility() {
         });
     });
 
+    // Update logo based on sidebar state
+    updateLogoForSidebarState(isIcon);
+
     // Also remove any stray text nodes inside links so only icons remain
     document.querySelectorAll('#sidebar .pe-nav-link').forEach((link) => {
         // Hide/show dedicated label span if present
@@ -386,6 +390,32 @@ function updateIconModeVisibility() {
             }
         });
     });
+}
+
+// Update logo based on sidebar state (normal vs collapsed)
+function updateLogoForSidebarState(isIcon) {
+    const logoContainer = document.querySelector('.pe-app-sidebar-logo');
+    if (!logoContainer) return;
+
+    // Get all logo images
+    const defaultLogo = logoContainer.querySelector('.pe-app-sidebar-logo-default');
+    const lightLogo = logoContainer.querySelector('.pe-app-sidebar-logo-light');
+    const minimizeLogo = logoContainer.querySelector('.pe-app-sidebar-logo-minimize');
+    const minimizeLightLogo = logoContainer.querySelector('.pe-app-sidebar-logo-minimize-light');
+
+    if (isIcon) {
+        // Show icon logos (collapsed state)
+        if (defaultLogo) defaultLogo.classList.add('d-none');
+        if (lightLogo) lightLogo.classList.add('d-none');
+        if (minimizeLogo) minimizeLogo.classList.remove('d-none');
+        if (minimizeLightLogo) minimizeLightLogo.classList.remove('d-none');
+    } else {
+        // Show normal logos (expanded state)
+        if (defaultLogo) defaultLogo.classList.remove('d-none');
+        if (lightLogo) lightLogo.classList.remove('d-none');
+        if (minimizeLogo) minimizeLogo.classList.add('d-none');
+        if (minimizeLightLogo) minimizeLightLogo.classList.add('d-none');
+    }
 }
 
 // React when html[data-sidebar] changes from other triggers

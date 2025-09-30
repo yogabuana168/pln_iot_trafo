@@ -11,7 +11,12 @@
 <script type="module" src="assets/js/layout-setup.js"></script>
 
 <!-- App favicon -->
-<link rel="shortcut icon" href="assets/images/k_favicon_32x.png">
+@php
+    $faviconUrl = class_exists('\App\Helpers\SiteSettings') ? \App\Helpers\SiteSettings::getFaviconUrl() : (($faviconPath = DB::table('site_settings')->where('setting_key', 'favicon_path')->value('setting_value')) ? asset($faviconPath) : asset('assets/images/k_favicon_32x.png'));
+@endphp
+<link rel="shortcut icon" href="{{ $faviconUrl }}">
+<link rel="icon" type="image/png" sizes="32x32" href="{{ $faviconUrl }}">
+<link rel="icon" type="image/png" sizes="16x16" href="{{ $faviconUrl }}">
 
 @yield('css')
 @include('partials.head-css') 

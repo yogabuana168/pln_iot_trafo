@@ -13,8 +13,12 @@
                 <div class="col-12 col-md-8 col-lg-6 col-xl-5">
                     <div class="card mx-xxl-8">
                         <div class="card-body py-12 px-8">
-                            <img src="assets/images/logo-dark.png" alt="Logo Dark" height="30"
-                                class="mb-4 mx-auto d-block">
+                            @php
+                                $logoIconPath = DB::table('site_settings')->where('setting_key', 'logo_icon_path')->value('setting_value');
+                                $logoIconUrl = $logoIconPath ? asset($logoIconPath) : (($logoPath = DB::table('site_settings')->where('setting_key', 'logo_path')->value('setting_value')) ? asset($logoPath) : asset('assets/images/logo-dark.png'));
+                            @endphp
+                            <img src="{{ $logoIconUrl }}" alt="Logo Icon" height="40" width="40"
+                                class="mb-4 mx-auto d-block" style="object-fit: contain;">
                             <h6 class="mb-3 mb-8 fw-medium text-center">Create a Strong Password</h6>
                             <form id="passwordForm">
                                 <div class="row g-4">
@@ -41,7 +45,10 @@
                             </form>
                         </div>
                     </div>
-                    <p class="position-relative text-center fs-12 mb-0">© 2025 Fabkin. Crafted with ❤️ by Pixeleyez</p>
+                    @php
+                        $footerText = class_exists('\App\Helpers\SiteSettings') ? \App\Helpers\SiteSettings::getFooterText() : (DB::table('site_settings')->where('setting_key', 'footer_text')->value('setting_value') ?? '© ' . date('Y') . ' PLN GPS Center. Design & Develop by Pixeleyez');
+                    @endphp
+                    <p class="position-relative text-center fs-12 mb-0">{!! $footerText !!}</p>
                 </div>
             </div>
         </div>
