@@ -1,4 +1,4 @@
-# PLN Admin (Laravel + FabKin)
+# PLN Admin (Laravel + dashboardLTE)
 
 Template admin berbasis Laravel yang digunakan pada subdomain `pln.gpscenter.id`, dikustomisasi dari FabKin (Bootstrap 5, Remix Icon & Bootstrap Icons).
 
