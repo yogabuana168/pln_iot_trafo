@@ -734,14 +734,234 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    // SMTP Test Modal + Handler
+    function buildSmtpTestModal() {
+        const existing = document.getElementById('smtpTestModal');
+        if (existing) return existing;
+        const modalHtml = `
+<div class="modal fade" id="smtpTestModal" tabindex="-1" aria-labelledby="smtpTestModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="smtpTestModalLabel">Test SMTP Connection</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="smtpTestForm">
+          <div class="mb-3">
+            <label class="form-label">Kirim email test ke</label>
+            <input type="email" class="form-control" name="test_email" placeholder="recipient@example.com" required>
+            <div class="form-text">Masukkan alamat email tujuan untuk menerima email uji coba.</div>
+          </div>
+          <div class="alert alert-secondary small" role="alert">
+            Pengujian akan menggunakan konfigurasi SMTP yang saat ini terisi pada form.
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+        <button type="button" class="btn btn-info" id="startSmtpTest"><span class="label"><i class="bi bi-send me-1"></i>Mulai Test</span></button>
+      </div>
+    </div>
+  </div>
+</div>`;
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = modalHtml.trim();
+        document.body.appendChild(wrapper.firstChild);
+        return document.getElementById('smtpTestModal');
+    }
+
+    function attachSmtpTestHandler() {
+        document.getElementById('startSmtpTest')?.addEventListener('click', function () {
+            const btn = this;
+            const form = document.getElementById('smtpTestForm');
+            if (!form) return;
+            const testEmail = form.querySelector('input[name="test_email"]').value.trim();
+            if (!testEmail) { showErrorNotification('Mohon isi email tujuan test'); return; }
+
+            const smtpHost = document.querySelector('input[name="smtp_host"]').value.trim();
+            const smtpPort = document.querySelector('input[name="smtp_port"]').value.trim();
+            const smtpUsername = document.querySelector('input[name="smtp_username"]').value.trim();
+            const smtpPassword = document.querySelector('input[name="smtp_password"]').value;
+            const smtpEncryption = document.querySelector('select[name="smtp_encryption"]').value;
+            const smtpFromName = document.querySelector('input[name="smtp_from_name"]').value.trim();
+            if (!smtpHost || !smtpPort || !smtpUsername || !smtpPassword || !smtpEncryption || !smtpFromName) {
+                showErrorNotification('Mohon lengkapi semua field SMTP terlebih dahulu');
+                return;
+            }
+
+            btn.disabled = true;
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Menguji...';
+
+            fetch('/settings/smtp/test', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    smtp_host: smtpHost,
+                    smtp_port: Number(smtpPort),
+                    smtp_username: smtpUsername,
+                    smtp_password: smtpPassword,
+                    smtp_encryption: smtpEncryption,
+                    smtp_from_name: smtpFromName,
+                    test_email: testEmail
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showSuccessNotification(data.message || 'SMTP test berhasil.');
+                    const modalEl = document.getElementById('smtpTestModal');
+                    const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+                    modal.hide();
+                } else {
+                    showErrorNotification(data.message || 'SMTP test gagal.');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                showErrorNotification('Terjadi kesalahan saat menguji SMTP');
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            });
+        });
+    }
+
     // Test SMTP Connection
     document.getElementById('testSmtpConnection')?.addEventListener('click', function() {
-        showErrorNotification('Fitur test SMTP connection akan segera tersedia');
+        const modalEl = buildSmtpTestModal();
+        if (!modalEl) { showErrorNotification('Gagal menyiapkan modal pengujian SMTP'); return; }
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+        // ensure handler attached after modal is built
+        attachSmtpTestHandler();
     });
 
-    // Test Google Map API
+    // Test Google Map API - client-side load and preview map
+    function buildGoogleMapTestModal() {
+        const existing = document.getElementById('googleMapTestModal');
+        if (existing) return existing;
+        const html = `
+<div class="modal fade" id="googleMapTestModal" tabindex="-1" aria-labelledby="googleMapTestModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="googleMapTestModalLabel">Google Maps API Test</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-2 small text-muted">Jika peta tampil (meski bertuliskan "for development purposes only"), koneksi API Maps JS berfungsi.</div>
+        <div id="googleMapPreview" style="width: 100%; height: 380px; border-radius: 8px; overflow: hidden; background:#f3f6f9;"></div>
+        <div id="googleMapTestStatus" class="mt-2 small"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+      </div>
+    </div>
+  </div>
+</div>`;
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = html.trim();
+        document.body.appendChild(wrapper.firstChild);
+        return document.getElementById('googleMapTestModal');
+    }
+
+    function isMapsLoaded() {
+        return !!(window.google && window.google.maps && typeof window.google.maps.Map === 'function');
+    }
+
+    function loadGoogleMapsJsOnce(apiKey, onReady) {
+        if (isMapsLoaded()) { onReady(); return; }
+        // Check if a script is already being loaded
+        const existing = document.querySelector('script[data-gmaps-loader="true"]');
+        if (existing) {
+            existing.addEventListener('load', function() { onReady(); }, { once: true });
+            existing.addEventListener('error', function() {
+                const status = document.getElementById('googleMapTestStatus');
+                if (status) status.innerHTML = '<span class="text-danger">Gagal memuat Google Maps JavaScript API (script error).</span>';
+            }, { once: true });
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.setAttribute('data-gmaps-loader', 'true');
+        script.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(apiKey) + '&v=weekly&loading=async';
+        script.async = true;
+        script.defer = true;
+        script.onload = function() { onReady(); };
+        script.onerror = function() {
+            const status = document.getElementById('googleMapTestStatus');
+            if (status) status.innerHTML = '<span class="text-danger">Gagal memuat Google Maps JavaScript API. Periksa API Key dan izin domain (HTTP referrer).</span>';
+        };
+        document.head.appendChild(script);
+    }
+
     document.getElementById('testGoogleMapApi')?.addEventListener('click', function() {
-        showErrorNotification('Fitur test Google Map API akan segera tersedia');
+        const apiKey = document.querySelector('input[name="google_maps_api_key"]').value.trim();
+        if (!apiKey) {
+            showErrorNotification('Mohon isi Google Maps API Key terlebih dahulu');
+            return;
+        }
+
+        const modalEl = buildGoogleMapTestModal();
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+
+        const latStr = document.querySelector('input[name="default_latitude"]').value || '-6.2088';
+        const lngStr = document.querySelector('input[name="default_longitude"]').value || '106.8456';
+        const zoomStr = document.querySelector('input[name="default_zoom"]').value || '10';
+        const lat = parseFloat(latStr);
+        const lng = parseFloat(lngStr);
+        const zoom = parseInt(zoomStr, 10) || 10;
+
+        const initWhenReady = function() {
+            try {
+                const status = document.getElementById('googleMapTestStatus');
+                if (!window.google || !window.google.maps) {
+                    if (status) status.innerHTML = '<span class="text-danger">Google Maps API termuat namun objek google.maps tidak tersedia.</span>';
+                    return;
+                }
+                const initMap = function() {
+                    const mapEl = document.getElementById('googleMapPreview');
+                    if (!mapEl) return;
+                    const map = new google.maps.Map(mapEl, {
+                        center: { lat: isNaN(lat) ? -6.2088 : lat, lng: isNaN(lng) ? 106.8456 : lng },
+                        zoom: zoom,
+                        mapTypeId: document.querySelector('select[name="default_map_type"]').value || 'roadmap'
+                    });
+                    // Force resize after modal shown to avoid white map
+                    setTimeout(function() {
+                        google.maps.event.trigger(map, 'resize');
+                        map.setCenter({ lat: isNaN(lat) ? -6.2088 : lat, lng: isNaN(lng) ? 106.8456 : lng });
+                    }, 250);
+                    google.maps.event.addListenerOnce(map, 'idle', function() {
+                        if (status) status.innerHTML = '<span class="text-success">Peta berhasil ditampilkan. API Maps JS berfungsi.</span>';
+                    });
+                };
+                // If modal already shown, init immediately; else wait for shown event
+                if (modalEl.classList.contains('show')) {
+                    initMap();
+                } else {
+                    modalEl.addEventListener('shown.bs.modal', function handleShown() {
+                        modalEl.removeEventListener('shown.bs.modal', handleShown);
+                        initMap();
+                    });
+                }
+            } catch (e) {
+                console.error(e);
+                const status = document.getElementById('googleMapTestStatus');
+                if (status) status.innerHTML = '<span class="text-danger">Gagal menginisialisasi peta: ' + (e && e.message ? e.message : 'unknown') + '</span>';
+            }
+        };
+
+        // Load Maps JS once then init
+        loadGoogleMapsJsOnce(apiKey, initWhenReady);
     });
 
     // WhatsApp Settings Form
@@ -779,32 +999,84 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // Test WhatsApp API
+    // Test WhatsApp API (Fonnte)
     document.getElementById('testWhatsappApi')?.addEventListener('click', function() {
         const apiKey = document.querySelector('input[name="whatsapp_api_key"]').value;
-        if (!apiKey) {
-            showErrorNotification('Mohon isi WhatsApp API Key terlebih dahulu');
-            return;
-        }
-        showErrorNotification('Fitur test WhatsApp API akan segera tersedia');
+        const testPhone = document.querySelector('input[name="whatsapp_test_phone"]').value;
+        const defaultTpl = document.querySelector('textarea[name="whatsapp_default_template"]').value || 'Hello, this is a test from PLN GPS Center.';
+        if (!apiKey) { showErrorNotification('Mohon isi WhatsApp API Key terlebih dahulu'); return; }
+        if (!testPhone) { showErrorNotification('Mohon isi Test Phone Number terlebih dahulu'); return; }
+
+        const btn = this;
+        btn.disabled = true;
+        const original = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Menguji...';
+
+        fetch('/settings/whatsapp/test', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') || '',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                whatsapp_api_key: apiKey,
+                target: testPhone,
+                message: defaultTpl.replace(/\{\{name\}\}/g, 'Tester'),
+                country_code: '62'
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showSuccessNotification(data.message || 'Test WhatsApp berhasil dikirim.');
+            } else {
+                showErrorNotification(data.message || 'Test WhatsApp gagal.');
+                if (data.provider_response) console.warn('Fonnte response:', data.provider_response);
+            }
+        })
+        .catch(err => { console.error(err); showErrorNotification('Terjadi kesalahan saat menguji WhatsApp API'); })
+        .finally(() => { btn.disabled = false; btn.innerHTML = original; });
     });
 
-    // Send Test Message
+    // Send Test Message (Fonnte) - gunakan template default
     document.getElementById('sendTestMessage')?.addEventListener('click', function() {
         const apiKey = document.querySelector('input[name="whatsapp_api_key"]').value;
         const testPhone = document.querySelector('input[name="whatsapp_test_phone"]').value;
-        
-        if (!apiKey) {
-            showErrorNotification('Mohon isi WhatsApp API Key terlebih dahulu');
-            return;
-        }
-        
-        if (!testPhone) {
-            showErrorNotification('Mohon isi nomor telepon test terlebih dahulu');
-            return;
-        }
-        
-        showErrorNotification('Fitur kirim test message akan segera tersedia');
+        const defaultTpl = document.querySelector('textarea[name="whatsapp_default_template"]').value || 'Hello, this is a test from PLN GPS Center.';
+        if (!apiKey) { showErrorNotification('Mohon isi WhatsApp API Key terlebih dahulu'); return; }
+        if (!testPhone) { showErrorNotification('Mohon isi nomor telepon test terlebih dahulu'); return; }
+
+        const btn = this;
+        btn.disabled = true;
+        const original = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Mengirim...';
+
+        fetch('/settings/whatsapp/test', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') || '',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                whatsapp_api_key: apiKey,
+                target: testPhone,
+                message: defaultTpl.replace(/\{\{name\}\}/g, 'Tester'),
+                country_code: '62'
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showSuccessNotification(data.message || 'Pesan tes WhatsApp berhasil dikirim.');
+            } else {
+                showErrorNotification(data.message || 'Gagal mengirim pesan tes WhatsApp.');
+                if (data.provider_response) console.warn('Fonnte response:', data.provider_response);
+            }
+        })
+        .catch(err => { console.error(err); showErrorNotification('Terjadi kesalahan saat mengirim pesan tes WhatsApp'); })
+        .finally(() => { btn.disabled = false; btn.innerHTML = original; });
     });
 
     // Firebase Settings Form

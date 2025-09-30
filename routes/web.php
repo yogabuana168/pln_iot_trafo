@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use App\Models\Position;
 use App\Models\Department;
 use App\Models\UserGroup;
@@ -985,6 +986,140 @@ Route::post('/settings/smtp/save', function (Request $request) {
     }
 });
 
+// Test SMTP Connection (send a test email using provided settings without persisting)
+Route::post('/settings/smtp/test', function (Request $request) {
+    try {
+        $request->validate([
+            'smtp_host' => 'required|string|max:255',
+            'smtp_port' => 'required|integer|min:1|max:65535',
+            'smtp_username' => 'required|email|max:255',
+            'smtp_password' => 'required|string|max:255',
+            'smtp_encryption' => 'required|in:tls,ssl,none',
+            'smtp_from_name' => 'required|string|max:255',
+            'test_email' => 'required|email|max:255'
+        ]);
+
+        $host = $request->smtp_host;
+        $port = (int) $request->smtp_port;
+        $username = $request->smtp_username;
+        $password = $request->smtp_password;
+        $encryption = $request->smtp_encryption;
+        $fromName = $request->smtp_from_name;
+        $toEmail = $request->test_email;
+        
+        // Raw SMTP flow using fsockopen (supports SSL and STARTTLS)
+        $timeout = 15;
+        $targetHost = $encryption === 'ssl' ? 'ssl://' . $host : $host;
+        $errno = 0; $errstr = '';
+        $fp = @fsockopen($targetHost, $port, $errno, $errstr, $timeout);
+        if (!$fp) {
+            return response()->json(['success' => false, 'message' => 'Tidak dapat terhubung ke SMTP server: ' . ($errstr ?: 'Unknown error')], 400);
+        }
+        stream_set_timeout($fp, $timeout);
+
+        $lastResponse = '';
+        $readResponse = function() use ($fp, &$lastResponse) {
+            $data = '';
+            // Wait until socket is readable to avoid empty reads (banner timing)
+            $read = [$fp]; $write = null; $except = null;
+            // up to 10 seconds
+            if (stream_select($read, $write, $except, 10) === 0) {
+                return '';
+            }
+            while (($line = fgets($fp, 515)) !== false) {
+                $data .= $line;
+                if (preg_match('/^\d{3} [\s\S]*/', $line)) {
+                    break;
+                }
+                // If multiline (e.g., 250-), continue until space after code
+                if (!preg_match('/^\d{3}-/', $line)) {
+                    break;
+                }
+            }
+            $lastResponse = trim($data);
+            return $data;
+        };
+
+        $expect = function(array $codes, $stepLabel = '') use ($readResponse, &$lastResponse) {
+            $resp = $readResponse();
+            foreach ($codes as $code) {
+                if (strpos($resp, (string)$code) === 0) {
+                    return $resp;
+                }
+            }
+            \Log::error('SMTP test unexpected response', [ 'step' => $stepLabel, 'response' => trim($resp) ]);
+            throw new \Exception('Unexpected SMTP response: ' . trim($resp));
+        };
+
+        $send = function($cmd) use ($fp) {
+            fwrite($fp, $cmd . "\r\n");
+        };
+
+        $expect([220], 'banner');
+        $send('EHLO ' . parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST));
+        $ehloResp = $expect([250], 'ehlo-1');
+
+        if ($encryption === 'tls') {
+            // try STARTTLS
+            $send('STARTTLS');
+            $expect([220], 'starttls');
+            if (!stream_socket_enable_crypto($fp, true, STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT | STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT)) {
+                throw new \Exception('Gagal melakukan negosiasi TLS (STARTTLS)');
+            }
+            // EHLO again after TLS
+            $send('EHLO ' . parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST));
+            $expect([250], 'ehlo-2');
+        }
+
+        // AUTH LOGIN
+        $send('AUTH LOGIN');
+        $expect([334], 'auth-login');
+        $send(base64_encode($username));
+        $expect([334], 'auth-user');
+        $send(base64_encode($password));
+        $expect([235], 'auth-pass');
+
+        // MAIL FROM / RCPT TO
+        $send('MAIL FROM: <' . $username . '>');
+        $expect([250], 'mail-from');
+        $send('RCPT TO: <' . $toEmail . '>');
+        $expect([250, 251], 'rcpt-to');
+
+        // DATA
+        $send('DATA');
+        $expect([354], 'data');
+        $headers = [];
+        $headers[] = 'From: ' . $fromName . ' <' . $username . '>';
+        $headers[] = 'To: <' . $toEmail . '>';
+        $headers[] = 'Subject: SMTP Test - PLN GPS Center';
+        $headers[] = 'MIME-Version: 1.0';
+        $headers[] = 'Content-Type: text/plain; charset=UTF-8';
+        $headers[] = 'Content-Transfer-Encoding: 8bit';
+        $message = 'Ini adalah email uji coba untuk memastikan konfigurasi SMTP berfungsi.';
+        $payload = implode("\r\n", $headers) . "\r\n\r\n" . $message . "\r\n.";
+        fwrite($fp, $payload . "\r\n");
+        $expect([250], 'data-end');
+
+        // QUIT
+        $send('QUIT');
+        fclose($fp);
+
+        return response()->json(['success' => true, 'message' => 'Email test berhasil dikirim ke ' . $toEmail]);
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Validasi gagal',
+            'errors' => $e->errors()
+        ], 422);
+    } catch (\Throwable $e) {
+        \Log::error('SMTP test failed', [ 'error' => $e->getMessage() ]);
+        return response()->json([
+            'success' => false,
+            'message' => 'Gagal mengirim email test: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
 // Save Google Map Settings
 Route::post('/settings/google-map/save', function (Request $request) {
     try {
@@ -1024,6 +1159,92 @@ Route::post('/settings/google-map/save', function (Request $request) {
         return response()->json([
             'success' => false,
             'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// Test Google Map API Key
+Route::post('/settings/google-map/test', function (Request $request) {
+    try {
+        $request->validate([
+            'google_maps_api_key' => 'required|string|max:255'
+        ]);
+
+        $apiKey = trim($request->google_maps_api_key);
+
+        // Use a simple Geocoding request to validate the key
+        $testUrl = 'https://maps.googleapis.com/maps/api/geocode/json?address=Jakarta&key=' . urlencode($apiKey);
+
+        $responseBody = null;
+        $httpStatus = 0;
+
+        if (function_exists('curl_init')) {
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $testUrl);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 8);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 12);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [ 'Accept: application/json' ]);
+            $responseBody = curl_exec($ch);
+            if ($responseBody === false) {
+                $err = curl_error($ch);
+                curl_close($ch);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal menghubungi Google API: ' . $err
+                ], 500);
+            }
+            $httpStatus = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+        } else {
+            $context = stream_context_create([
+                'http' => [
+                    'method' => 'GET',
+                    'timeout' => 12,
+                    'header' => "Accept: application/json\r\n"
+                ]
+            ]);
+            $responseBody = @file_get_contents($testUrl, false, $context);
+            if (isset($http_response_header) && is_array($http_response_header)) {
+                foreach ($http_response_header as $h) {
+                    if (preg_match('/^HTTP\/\S+\s(\d{3})/', $h, $m)) { $httpStatus = (int)$m[1]; break; }
+                }
+            }
+            if ($responseBody === false) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal menghubungi Google API (stream)'
+                ], 500);
+            }
+        }
+
+        $json = json_decode($responseBody, true);
+        $status = $json['status'] ?? null;
+        $errorMessage = $json['error_message'] ?? null;
+
+        if ($httpStatus === 200 && $status === 'OK') {
+            return response()->json([
+                'success' => true,
+                'message' => 'API Key valid. Geocoding berhasil.'
+            ]);
+        }
+
+        $detail = $errorMessage ?: ('Status: ' . ($status ?: 'UNKNOWN'));
+        return response()->json([
+            'success' => false,
+            'message' => 'API Key tidak valid atau dibatasi. ' . $detail
+        ], 400);
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Validasi gagal',
+            'errors' => $e->errors()
+        ], 422);
+    } catch (\Throwable $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Gagal menguji Google Map API: ' . $e->getMessage()
         ], 500);
     }
 });
@@ -1073,6 +1294,96 @@ Route::post('/settings/whatsapp/save', function (Request $request) {
         return response()->json([
             'success' => false,
             'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// Test WhatsApp API via Fonnte
+Route::post('/settings/whatsapp/test', function (Request $request) {
+    try {
+        $request->validate([
+            'whatsapp_api_key' => 'required|string|max:255',
+            'target' => 'required|string|max:30',
+            'message' => 'required|string|max:1000',
+            'country_code' => 'nullable|string|max:5'
+        ]);
+
+        $token = trim($request->whatsapp_api_key);
+        $target = preg_replace('/\s+/', '', (string)$request->target);
+        $message = (string)$request->message;
+        $country = trim((string)$request->country_code ?: '62');
+
+        if (!function_exists('curl_init')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'cURL PHP tidak tersedia di server'
+            ], 500);
+        }
+
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL => 'https://api.fonnte.com/send',
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 20,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'POST',
+            CURLOPT_POSTFIELDS => [
+                'target' => $target,
+                'message' => $message,
+                'countryCode' => $country
+            ],
+            CURLOPT_HTTPHEADER => [
+                'Authorization: ' . $token
+            ],
+        ]);
+
+        $respBody = curl_exec($ch);
+        if ($respBody === false) {
+            $err = curl_error($ch);
+            curl_close($ch);
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghubungi Fonnte: ' . $err
+            ], 500);
+        }
+        $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        $json = json_decode($respBody, true);
+        $ok = false;
+        $detail = null;
+        if (is_array($json)) {
+            // Fonnte biasanya mengembalikan status atau detail pada JSON
+            $ok = ($json['status'] ?? $json['success'] ?? false) ? true : false;
+            $detail = $json['detail'] ?? $json['message'] ?? null;
+        }
+
+        if ($statusCode >= 200 && $statusCode < 300 && ($ok || $json !== null)) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Test WhatsApp terkirim (Fonnte).',
+                'provider_response' => $json ?: $respBody
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Fonnte mengembalikan error: HTTP ' . $statusCode . ($detail ? (' - ' . $detail) : ''),
+            'provider_response' => $json ?: $respBody
+        ], 400);
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Validasi gagal',
+            'errors' => $e->errors()
+        ], 422);
+    } catch (\Throwable $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Gagal menguji WhatsApp API: ' . $e->getMessage()
         ], 500);
     }
 });
