@@ -172,9 +172,16 @@
                         @foreach($unassignedUsers ?? [] as $user)
                             <div class="user-item p-3 border-bottom" data-user-id="{{ $user->id }}" data-is-leader="0">
                                 <div class="d-flex align-items-center">
-                                    <div class="user-avatar me-2" style="background-color: {{ sprintf('#%06X', mt_rand(0, 0xFFFFFF)) }};">
-                                        {{ strtoupper(substr($user->name, 0, 1)) }}
-                                    </div>
+                                    @php
+                                        $ua = ($user->avatar_path ?? null) && file_exists(public_path($user->avatar_path)) ? asset($user->avatar_path) : null;
+                                    @endphp
+                                    @if($ua)
+                                        <img src="{{ $ua }}" class="me-2" style="width:32px;height:32px;border-radius:50%;object-fit:cover;" alt="Avatar">
+                                    @else
+                                        <div class="user-avatar me-2" style="background-color: {{ sprintf('#%06X', mt_rand(0, 0xFFFFFF)) }};">
+                                            {{ strtoupper(substr($user->name, 0, 1)) }}
+                                        </div>
+                                    @endif
                                     <div class="flex-grow-1">
                                         <div class="fw-semibold">{{ $user->name }}</div>
                                         <small class="text-muted">{{ $user->email }}</small>
@@ -202,6 +209,10 @@
                             </div>
                             <div class="d-flex gap-2">
                                 <span class="badge bg-white text-primary badge-count" id="count-{{ $group->id }}">0</span>
+                                @php $hasLeader = isset($groupLeaders[$group->id]); @endphp
+                                @unless($hasLeader)
+                                    <span class="badge bg-warning text-dark">No Leader</span>
+                                @endunless
                                 <div class="dropdown">
                                     <button class="btn btn-sm btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
                                         <i class="bi bi-three-dots-vertical"></i>
@@ -232,9 +243,16 @@
                                 @endphp
                                 <div class="{{ $itemClass }} p-3 border-bottom" data-user-id="{{ $user->id }}" data-is-leader="{{ $isLeader ? '1' : '0' }}">
                                     <div class="d-flex align-items-center">
-                                        <div class="user-avatar me-2" style="background-color: {{ sprintf('#%06X', mt_rand(0, 0xFFFFFF)) }};">
-                                            {{ strtoupper(substr($user->name, 0, 1)) }}
-                                        </div>
+                                        @php
+                                            $ua = ($user->avatar_path ?? null) && file_exists(public_path($user->avatar_path)) ? asset($user->avatar_path) : null;
+                                        @endphp
+                                        @if($ua)
+                                            <img src="{{ $ua }}" class="me-2" style="width:32px;height:32px;border-radius:50%;object-fit:cover;" alt="Avatar">
+                                        @else
+                                            <div class="user-avatar me-2" style="background-color: {{ sprintf('#%06X', mt_rand(0, 0xFFFFFF)) }};">
+                                                {{ strtoupper(substr($user->name, 0, 1)) }}
+                                            </div>
+                                        @endif
                                         <div class="flex-grow-1">
                                             <div class="d-flex align-items-center gap-2">
                                                 <span class="fw-semibold">{{ $user->name }}</span>
@@ -631,7 +649,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     window.location.reload();
                 }, 1000);
             } else {
-                showNotification('error', data.message || 'Failed to set leader');
+                showNotification('error', data.message || 'Failed to set leader (only one leader per group)');
             }
         })
         .catch(error => {

@@ -279,7 +279,7 @@
         <div class="col-12 col-md-6 col-xl-4">
             <div class="card mb-6">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">Team Members</h5>
+                    <h5 class="card-title mb-0">Team Members{{ isset($userGroup->name) ? ' - ' . $userGroup->name : '' }}</h5>
                     <div class="dropdown">
                         <a href="javascript:void(0)" data-bs-toggle="dropdown" class="text-muted">
                             <i class="bi bi-three-dots-vertical"></i>
@@ -292,11 +292,20 @@
                 </div>
                 <div class="card-body p-0">
                     <div data-simplebar style="height: 395px;">
+                        @if(empty($user->group_id))
+                            <div class="p-5 text-center text-muted">
+                                <i class="bi bi-people fs-48 mb-3 d-block"></i>
+                                <p>User belum tergabung dalam group manapun.</p>
+                                <small>Silakan assign user ke salah satu group pada halaman User Group.</small>
+                            </div>
+                        @else
                         @php
                             $teamMembers = \DB::table('users')
-                                ->where('department_id', $user->department_id)
+                                ->where('group_id', $user->group_id)
                                 ->where('id', '!=', $user->id)
-                                ->limit(5)
+                                ->select('id','name','email','position_id','avatar_path','role')
+                                ->orderBy('name')
+                                ->limit(10)
                                 ->get();
                         @endphp
                         
@@ -305,14 +314,20 @@
                                 $memberPosition = \DB::table('positions')->where('id', $member->position_id)->first();
                             @endphp
                             <div class="d-flex gap-3 border-bottom p-5">
-                                <img src="{{ $member->avatar_path ? asset($member->avatar_path) : asset('assets/images/dashboard/3d-rendering-avatar-min.png') }}"
+                                @php
+                                    $memberAvatar = ($member->avatar_path ?? null) && file_exists(public_path($member->avatar_path)) ? asset($member->avatar_path) : asset('assets/images/dashboard/3d-rendering-avatar-min.png');
+                                @endphp
+                                <img src="{{ $memberAvatar }}"
                                     class="avatar-lg flex-shrink-0 rounded-circle" alt="Avatar Image">
                                 <div class="flex-grow-1">
                                     <button class="btn btn-light-light text-muted btn-sm rounded float-end">Message</button>
                                     <h6 class="mb-1 fs-15">{{ $member->name }}</h6>
-                                    <span class="text-muted">{{ $member->email }}</span>
+                                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                                        <span class="badge bg-primary-subtle text-primary">{{ $memberPosition->name ?? 'No Position' }}</span>
+                                        <span class="badge bg-info-subtle text-info">{{ ucwords(str_replace('_',' ', $member->role ?? 'user')) }}</span>
+                                    </div>
                                     <div class="mt-1">
-                                        <small class="text-muted">{{ $memberPosition->name ?? 'No Position' }}</small>
+                                        <small class="text-muted">{{ $member->email }}</small>
                                     </div>
                                 </div>
                             </div>
@@ -322,6 +337,7 @@
                                 <p>No team members found</p>
                             </div>
                         @endforelse
+                        @endif
                     </div>
                 </div>
             </div>

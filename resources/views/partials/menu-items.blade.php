@@ -47,6 +47,24 @@
                  <span class="pe-nav-content">WA Setting</span>
              </a>
          </li>
+        <li class="pe-slide-item">
+            <a href="/settings/notifications" class="pe-nav-link">
+                <i class="bi bi-bell pe-nav-icon"></i>
+                <span class="pe-nav-content">Notifikasi Template</span>
+            </a>
+        </li>
+        <li class="pe-slide-item">
+            <a href="/settings/transformator" class="pe-nav-link">
+                <i class="ri ri-plug-2-line pe-nav-icon"></i>
+                <span class="pe-nav-content">Transformator</span>
+            </a>
+        </li>
+                <li class="pe-slide-item">
+                    <a href="/settings/devices" class="pe-nav-link">
+                        <i class="ri ri-cpu-line pe-nav-icon"></i>
+                        <span class="pe-nav-content">Master Data Device</span>
+                    </a>
+                </li>
      </ul>
  </li>
   <li class="pe-slide pe-has-sub">

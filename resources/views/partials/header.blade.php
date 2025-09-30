@@ -50,24 +50,30 @@
                     </div>
                 </div>
                 <div class="dropdown pe-dropdown-mega d-none d-md-block">
+                    @php
+                        $currentUser = DB::table('users')->where('role', '!=', 'super_admin')->orderByDesc('id')->first();
+                        $headerName = $currentUser->name ?? 'User';
+                        $headerEmail = $currentUser->email ?? '';
+                        $avatarPath = $currentUser && !empty($currentUser->avatar_path) && file_exists(public_path($currentUser->avatar_path)) ? asset($currentUser->avatar_path) : asset('assets/images/dashboard/3d-rendering-avatar-min.png');
+                    @endphp
                     <button class="header-profile-btn btn gap-1 text-start" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <span class="header-btn btn position-relative">
-                            <img src="{{ asset('assets/images/dashboard/3d-rendering-avatar-min.png') }}" alt="Avatar Image" class="img-fluid rounded-circle">
+                            <img src="{{ $avatarPath }}" alt="Avatar Image" class="img-fluid rounded-circle">
                             <span class="position-absolute translate-middle badge border border-light rounded-circle bg-success"><span class="visually-hidden">unread messages</span></span>
                         </span>
                         <div class="d-none d-lg-block pe-2">
-                            <span class="d-block mb-0 fs-13 fw-semibold">Paul Danielle</span>
-                            <span class="d-block mb-0 fs-12 text-muted">Founder</span>
+                            <span class="d-block mb-0 fs-13 fw-semibold">{{ $headerName }}</span>
+                            <span class="d-block mb-0 fs-12 text-muted">{{ $headerEmail }}</span>
                         </div>
                     </button>
                     <div class="dropdown-menu dropdown-mega-sm header-dropdown-menu p-3">
                         <div class="border-bottom pb-2 mb-2 d-flex align-items-center gap-2">
-                            <img src="{{ asset('assets/images/dashboard/3d-rendering-avatar-min.png') }}" alt="Avatar Image" class="avatar-md">
+                            <img src="{{ $avatarPath }}" alt="Avatar Image" class="avatar-md">
                             <div>
                                 <a href="javascript:void(0)">
-                                    <h6 class="mb-0 lh-base">Paul Danielle</h6>
+                                    <h6 class="mb-0 lh-base">{{ $headerName }}</h6>
                                 </a>
-                                <p class="mb-0 fs-13 text-muted">paul@fabkin.com</p>
+                                <p class="mb-0 fs-13 text-muted">{{ $headerEmail }}</p>
                             </div>
                         </div>
                         <ul class="list-unstyled mb-1 border-bottom pb-1">

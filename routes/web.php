@@ -5,6 +5,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use App\Models\NotificationTemplate;
+use App\Models\Transformator as TransformatorModel;
+use App\Models\TypeTransformator;
+use App\Models\WhatsappNotificationSetting;
 use App\Models\Position;
 use App\Models\Department;
 use App\Models\UserGroup;
@@ -383,8 +387,266 @@ Route::get('/settings/site', function () {
     return view('settings.site', compact('settings'));
 });
 
+// Notifications placeholder page
+Route::get('/settings/notifications', function () {
+    return view('settings.notifications');
+});
+
+// Transformator settings placeholder
+Route::get('/settings/transformator', function () {
+    return view('settings.transformator');
+});
+
+Route::get('/settings/devices', function () {
+    return view('settings.devices');
+});
+
+// Transformator API (new)
+Route::get('/api/transformator', function (Request $request) {
+    $q = trim((string) $request->query('q', ''));
+    $perPage = max(1, min(100, (int) $request->query('per_page', 10)));
+    $query = TransformatorModel::with('type');
+    if ($q !== '') {
+        $query->where(function($w) use ($q) {
+            $w->where('kode_aset','like',"%$q%")
+              ->orWhere('nomor_seri','like',"%$q%")
+              ->orWhere('merk','like',"%$q%")
+              ->orWhere('lokasi','like',"%$q%")
+              ->orWhere('penyulang','like',"%$q%")
+              ->orWhere('gardu','like',"%$q%")
+              ->orWhereHas('type', function($t) use ($q) {
+                  $t->where('kapasitas_kva','like',"%$q%")
+                    ->orWhere('tegangan_primer_kv','like',"%$q%")
+                    ->orWhere('tegangan_sekunder_v','like',"%$q%");
+              });
+        });
+    }
+    $p = $query->orderByDesc('updated_at')->paginate($perPage)->appends(['q'=>$q,'per_page'=>$perPage]);
+    return response()->json($p);
+});
+
+Route::post('/api/transformator/save', function (Request $request) {
+    $request->validate([
+        'kode_aset' => 'required|string|max:50',
+        'nomor_seri' => 'nullable|string|max:100',
+        'merk' => 'nullable|string|max:100',
+        'tahun_operasi' => 'nullable|integer|min:1900|max:2100',
+        'lokasi' => 'nullable|string|max:255',
+        'koordinat_lat' => 'nullable|numeric',
+        'koordinat_long' => 'nullable|numeric',
+        'penyulang' => 'nullable|string|max:100',
+        'gardu' => 'nullable|string|max:100',
+        'status' => 'nullable|string|max:20',
+        'keterangan' => 'nullable|string',
+        'type_id' => 'nullable|integer|exists:type_transformator,id'
+    ]);
+    $id = $request->input('id');
+    if ($id) {
+        $row = TransformatorModel::find($id);
+        if (!$row) return response()->json(['success'=>false,'message'=>'Not found'],404);
+        $row->update($request->only([
+            'kode_aset','nomor_seri','merk','tahun_operasi','lokasi','koordinat_lat','koordinat_long',
+            'penyulang','gardu','status','keterangan','type_id'
+        ]));
+    } else {
+        if (TransformatorModel::where('kode_aset',$request->kode_aset)->exists()) {
+            return response()->json(['success'=>false,'message'=>'Kode aset already exists'],422);
+        }
+        TransformatorModel::create($request->only([
+            'kode_aset','nomor_seri','merk','tahun_operasi','lokasi','koordinat_lat','koordinat_long',
+            'penyulang','gardu','status','keterangan','type_id'
+        ]));
+    }
+    return response()->json(['success'=>true]);
+});
+
+Route::post('/api/transformator/delete', function (Request $request) {
+    $id = (int) $request->input('id');
+    TransformatorModel::where('id',$id)->delete();
+    return response()->json(['success'=>true]);
+});
+
+Route::post('/api/transformator/bulk', function (Request $request) {
+    $action = $request->input('action');
+    $ids = (array) $request->input('ids', []);
+    if ($action === 'delete') {
+        TransformatorModel::whereIn('id',$ids)->delete();
+    }
+    return response()->json(['success'=>true]);
+});
+
+// Type Transformator list for dropdown
+Route::get('/api/type-transformator', function (Request $request) {
+    $list = TypeTransformator::orderBy('kapasitas_kva')->get();
+    return response()->json($list);
+});
+
+// Show single transformator
+Route::get('/api/transformator/show/{id}', function ($id) {
+    $row = TransformatorModel::with('type')->find($id);
+    if (!$row) return response()->json(['success'=>false,'message'=>'Not found'],404);
+    return response()->json(['success'=>true,'data'=>$row]);
+});
+
+// Type Transformator CRUD (paginated list, save, delete, bulk)
+Route::get('/api/type-transformator/list', function (Request $request) {
+    $q = trim((string) $request->query('q',''));
+    $perPage = max(1, min(100, (int) $request->query('per_page', 10)));
+    $query = TypeTransformator::query();
+    if ($q !== '') {
+        $query->where(function($w) use ($q){
+            $w->where('kapasitas_kva','like',"%$q%")
+              ->orWhere('tegangan_primer_kv','like',"%$q%")
+              ->orWhere('tegangan_sekunder_v','like',"%$q%")
+              ->orWhere('pendingin','like',"%$q%")
+              ->orWhere('jenis_konstruksi','like',"%$q%")
+              ->orWhere('isolasi','like',"%$q%");
+        });
+    }
+    $p = $query->orderByDesc('updated_at')->paginate($perPage)->appends(['q'=>$q,'per_page'=>$perPage]);
+    return response()->json($p);
+});
+
+Route::post('/api/type-transformator/save', function (Request $request) {
+    $request->validate([
+        'kapasitas_kva' => 'required|integer|min:1',
+        'tegangan_primer_kv' => 'required|numeric|min:0',
+        'tegangan_sekunder_v' => 'required|integer|min:0',
+        'frekuensi_hz' => 'nullable|integer|min:1',
+        'impedansi_percent' => 'nullable|numeric|min:0',
+        'jumlah_phasa' => 'required|integer|in:1,3',
+        'pendingin' => 'nullable|string|max:50',
+        'jenis_konstruksi' => 'nullable|string|max:50',
+        'isolasi' => 'nullable|string|max:50',
+        'fco' => 'nullable|string|max:50',
+        'arrester' => 'nullable|string|max:50',
+    ]);
+    $id = $request->input('id');
+    $data = $request->only(['kapasitas_kva','tegangan_primer_kv','tegangan_sekunder_v','frekuensi_hz','impedansi_percent','jumlah_phasa','pendingin','jenis_konstruksi','isolasi','fco','arrester']);
+    if ($id) {
+        $row = TypeTransformator::find($id);
+        if(!$row) return response()->json(['success'=>false,'message'=>'Not found'],404);
+        $row->update($data);
+    } else {
+        TypeTransformator::create($data);
+    }
+    return response()->json(['success'=>true]);
+});
+
+Route::post('/api/type-transformator/delete', function (Request $request) {
+    $id = (int) $request->input('id');
+    TypeTransformator::where('id',$id)->delete();
+    return response()->json(['success'=>true]);
+});
+
+Route::post('/api/type-transformator/bulk', function (Request $request) {
+    $action = $request->input('action');
+    $ids = (array) $request->input('ids', []);
+    if ($action === 'delete') {
+        TypeTransformator::whereIn('id',$ids)->delete();
+    }
+    return response()->json(['success'=>true]);
+});
+
+// Locations API for dropdown
+Route::get('/api/locations', function (Request $request) {
+    $q = trim((string) $request->query('q', ''));
+    $query = Location::query();
+    if ($q !== '') {
+        $query->where(function($w) use ($q) {
+            $w->where('name','like',"%$q%")
+              ->orWhere('address','like',"%$q%")
+              ->orWhere('city','like',"%$q%");
+        });
+    }
+    return response()->json($query->orderBy('name')->limit(50)->get());
+});
+Route::get('/settings/notifications/list', function () {
+    $rows = NotificationTemplate::orderByDesc('updated_at')->get();
+    return response()->json(['success' => true, 'data' => $rows]);
+});
+
+Route::post('/settings/notifications/save', function (Request $request) {
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'type' => 'required|in:email,whatsapp,push',
+        'status' => 'required|in:active,inactive',
+        'content' => 'nullable|string'
+    ]);
+    $id = $request->input('id');
+    if ($id) {
+        $tpl = NotificationTemplate::find($id);
+        if (!$tpl) return response()->json(['success'=>false,'message'=>'Template not found'],404);
+        $tpl->update([
+            'name' => $request->name,
+            'type' => $request->type,
+            'status' => $request->status,
+            'content' => $request->content,
+            'trigger_sensor' => $request->trigger_sensor,
+            'trigger_condition' => $request->trigger_condition,
+            'trigger_value' => $request->trigger_value,
+        ]);
+    } else {
+        NotificationTemplate::create([
+            'name' => $request->name,
+            'type' => $request->type,
+            'status' => $request->status,
+            'content' => $request->content,
+            'trigger_sensor' => $request->trigger_sensor,
+            'trigger_condition' => $request->trigger_condition,
+            'trigger_value' => $request->trigger_value,
+        ]);
+    }
+    return response()->json(['success' => true]);
+});
+
+Route::post('/settings/notifications/delete', function (Request $request) {
+    $id = (string) $request->input('id');
+    NotificationTemplate::where('id', $id)->delete();
+    return response()->json(['success' => true]);
+});
+
+Route::post('/settings/notifications/bulk', function (Request $request) {
+    $action = $request->input('action');
+    $ids = (array) $request->input('ids', []);
+    if ($action === 'delete') {
+        NotificationTemplate::whereIn('id', $ids)->delete();
+    } elseif (in_array($action, ['activate','deactivate'], true)) {
+        NotificationTemplate::whereIn('id', $ids)->update(['status' => $action === 'activate' ? 'active' : 'inactive']);
+    }
+    return response()->json(['success' => true]);
+});
+
 Route::get('/settings/wa', function () {
     return view('settings.wa');
+});
+// WA notification settings APIs
+Route::get('/api/wa/audience-options', function () {
+    $groups = DB::table('user_groups')->select('id','name')->orderBy('name')->get();
+    $users = DB::table('users')->select('id','name','email')->orderBy('name')->limit(500)->get();
+    $templates = NotificationTemplate::orderBy('name')->get(['id','name','type','status']);
+    return response()->json(['groups'=>$groups,'users'=>$users,'templates'=>$templates]);
+});
+
+Route::get('/api/wa/setting', function(){
+    $row = WhatsappNotificationSetting::first();
+    return response()->json($row);
+});
+
+Route::post('/api/wa/setting/save', function (Request $request) {
+    $request->validate([
+        'audience_type' => 'required|in:all,group,users',
+        'audience_ids' => 'nullable|array',
+        'template_id' => 'nullable|integer|exists:notification_templates,id'
+    ]);
+    $row = WhatsappNotificationSetting::first();
+    $data = [
+        'audience_type' => $request->audience_type,
+        'audience_ids' => $request->audience_ids,
+        'template_id' => $request->template_id,
+    ];
+    if ($row) { $row->update($data); } else { WhatsappNotificationSetting::create($data); }
+    return response()->json(['success'=>true]);
 });
 
 Route::get('/users/add', function () {
@@ -695,7 +957,7 @@ Route::get('/users/group', function () {
     foreach ($groups as $group) {
         $users = DB::table('users')
             ->where('group_id', $group->id)
-            ->select('id', 'name', 'email', 'role')
+            ->select('id', 'name', 'email', 'role', 'avatar_path')
             ->get();
         
         // Sort: leaders first, then members
@@ -711,7 +973,7 @@ Route::get('/users/group', function () {
             $query->whereNull('group_id')
                   ->orWhere('group_id', 0);
         })
-        ->select('id', 'name', 'email', 'role')
+        ->select('id', 'name', 'email', 'role', 'avatar_path')
         ->orderBy('name')
         ->get();
     
@@ -1568,7 +1830,10 @@ Route::post('/users/assign-group', function (Request $request) {
                 'updated_at' => now()
             ]);
 
-        $message = $groupId ? 'User assigned to group successfully' : 'User removed from group successfully';
+        // Enforce leader rule: if user was a leader anywhere, remove leadership when moved or unassigned
+        DB::table('group_leaders')->where('user_id', $userId)->delete();
+
+        $message = $groupId ? 'User assigned to group successfully' : 'User removed from group successfully (leader status cleared if any)';
         
         return response()->json([
             'success' => true,
@@ -1596,8 +1861,7 @@ Route::post('/users/group/update', function (Request $request) {
             ->where('id', $request->group_id)
             ->update([
                 'name' => $request->group_name,
-                'description' => $request->group_desc,
-                'updated_at' => now()
+                'description' => $request->group_desc
             ]);
 
         return response()->json([
