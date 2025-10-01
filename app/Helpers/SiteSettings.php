@@ -80,7 +80,8 @@ class SiteSettings
     public static function getFaviconUrl()
     {
         $faviconPath = self::get('favicon_path');
-        return $faviconPath ? asset($faviconPath) : asset('assets/images/k_favicon_32x.png');
+        // Default to rounded SVG that masks corners like ThemeForest style
+        return $faviconPath ? asset($faviconPath) : asset('assets/images/favicon-rounded.svg');
     }
 
     /**

@@ -140,7 +140,7 @@ Route::get('/settings/system', function () {
 // Favicon endpoint for real-time updates
 Route::get('/settings/system/favicon', function () {
     $faviconPath = DB::table('site_settings')->where('setting_key', 'favicon_path')->value('setting_value');
-    $faviconUrl = $faviconPath ? public_path($faviconPath) : public_path('assets/images/k_favicon_32x.png');
+    $faviconUrl = $faviconPath ? public_path($faviconPath) : public_path('assets/images/favicon-rounded.svg');
     
     if (file_exists($faviconUrl)) {
         $mimeType = mime_content_type($faviconUrl);
@@ -152,8 +152,8 @@ Route::get('/settings/system/favicon', function () {
         ]);
     }
     
-    return response()->file(public_path('assets/images/k_favicon_32x.png'), [
-        'Content-Type' => 'image/png',
+    return response()->file(public_path('assets/images/favicon-rounded.svg'), [
+        'Content-Type' => 'image/svg+xml',
         'Cache-Control' => 'no-cache, no-store, must-revalidate',
         'Pragma' => 'no-cache',
         'Expires' => '0'
