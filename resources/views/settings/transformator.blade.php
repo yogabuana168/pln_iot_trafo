@@ -45,9 +45,8 @@
                                 <th style="width:32px"><input type="checkbox" id="trafoSelectAll" class="form-check-input"></th>
                                 <th>Kode Aset</th>
                                 <th style="width:120px">Nomor Seri</th>
-                                <th>Merk</th>
-                                <th style="width:100px">Type</th>
-                                <th style="width:100px">Kapasitas</th>
+                                <th style="width:100px">Merk</th>
+                                <th style="width:120px">Type</th>
                                 <th>Lokasi</th>
                                 <th style="width:150px">Gardu Induk</th>
                                 <th style="width:120px">GPS</th>
@@ -83,6 +82,76 @@ document.addEventListener('DOMContentLoaded', function(){
 
   let state = { page: 1, q: '', per: 10 };
 
+  // Toast notification functions
+  function showSuccessNotification(message) {
+    const toastContainer = document.getElementById('toast-container') || createToastContainer();
+    
+    const toastId = 'toast-' + Date.now();
+    const toastHtml = `
+      <div class="toast align-items-center text-white bg-success border-0" id="${toastId}" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+          <div class="toast-body">
+            <i class="bi bi-check-circle me-2"></i>${message}
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+      </div>
+    `;
+    
+    toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+    
+    const toastElement = document.getElementById(toastId);
+    const toast = new bootstrap.Toast(toastElement, {
+      autohide: true,
+      delay: 3000
+    });
+    
+    toast.show();
+    
+    toastElement.addEventListener('hidden.bs.toast', () => {
+      toastElement.remove();
+    });
+  }
+
+  function showErrorNotification(message) {
+    const toastContainer = document.getElementById('toast-container') || createToastContainer();
+    
+    const toastId = 'toast-' + Date.now();
+    const toastHtml = `
+      <div class="toast align-items-center text-white bg-danger border-0" id="${toastId}" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+          <div class="toast-body">
+            <i class="bi bi-exclamation-circle me-2"></i>${message}
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+      </div>
+    `;
+    
+    toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+    
+    const toastElement = document.getElementById(toastId);
+    const toast = new bootstrap.Toast(toastElement, {
+      autohide: true,
+      delay: 3000
+    });
+    
+    toast.show();
+    
+    toastElement.addEventListener('hidden.bs.toast', () => {
+      toastElement.remove();
+    });
+  }
+
+  function createToastContainer() {
+    const container = document.createElement('div');
+    container.id = 'toast-container';
+    container.className = 'toast-container position-fixed top-0 end-0 p-3';
+    container.style.zIndex = '9999';
+    document.body.appendChild(container);
+    return container;
+  }
+
   function fetchList(){
     const url = `/api/transformator?page=${state.page}&q=${encodeURIComponent(state.q)}&per_page=${state.per}`;
     fetch(url).then(r=>r.json()).then(render);
@@ -92,7 +161,8 @@ document.addEventListener('DOMContentLoaded', function(){
     const rows = (p.data||[]).map(r => {
       const gps = (r.koordinat_lat && r.koordinat_long) ? `${r.koordinat_lat}, ${r.koordinat_long}` : '-';
       const typeStr = r.type ? `${r.type.kapasitas_kva||''} kVA` : '-';
-      const garduStr = r.gardu_induk ? `${r.gardu_induk.nama_gi||''}` : (r.gardu || '-');
+      const garduStr = r.gardu_induk ? `${r.gardu_induk.nama_gi||'-'}` : '-';
+      
       return `
       <tr data-id="${r.id}">
         <td><input type="checkbox" class="row-check form-check-input"></td>
@@ -133,20 +203,51 @@ document.addEventListener('DOMContentLoaded', function(){
   bulkBtn.addEventListener('click', ()=>{
     const act = bulkSel.value; if(!act) return;
     const ids = Array.from(tbody.querySelectorAll('.row-check:checked')).map(cb=>cb.closest('tr').dataset.id);
-    if(ids.length===0) return;
+    if(ids.length===0) {
+      showErrorNotification('Pilih data yang akan diproses!');
+      return;
+    }
+    if(!confirm(`Yakin akan ${act} ${ids.length} data transformator?`)) return;
     fetch('/api/transformator/bulk', { method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content}, body: JSON.stringify({ action: act, ids }) })
-      .then(r=>r.json()).then(()=> fetchList());
+      .then(r=>r.json())
+      .then(()=> {
+        showSuccessNotification(`${ids.length} data berhasil diproses!`);
+        fetchList();
+      })
+      .catch(error => {
+        console.error('Bulk action error:', error);
+        showErrorNotification('Terjadi kesalahan saat memproses data');
+      });
   });
 
   createBtn.addEventListener('click', ()=> openModal());
   window.trafoEdit = function(id){
     fetch(`/api/transformator/show/${id}`).then(r=>r.json()).then(res=>{
-      if(!res.success) return;
+      if(!res.success) {
+        showErrorNotification('Gagal memuat data transformator');
+        return;
+      }
       openModal(res.data);
+    }).catch(error => {
+      console.error('Load error:', error);
+      showErrorNotification('Terjadi kesalahan saat memuat data');
     });
     return false;
   };
-  window.trafoDelete = function(id){ if(!confirm('Delete this transformer?')) return false; fetch('/api/transformator/delete',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content,}, body: JSON.stringify({id})}).then(r=>r.json()).then(()=>fetchList()); return false; };
+  window.trafoDelete = function(id){ 
+    if(!confirm('Yakin akan menghapus transformator ini?')) return false; 
+    fetch('/api/transformator/delete',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content,}, body: JSON.stringify({id})})
+      .then(r=>r.json())
+      .then(()=>{
+        showSuccessNotification('Data transformator berhasil dihapus!');
+        fetchList();
+      })
+      .catch(error => {
+        console.error('Delete error:', error);
+        showErrorNotification('Terjadi kesalahan saat menghapus data');
+      }); 
+    return false; 
+  };
 
   // Modal
   const modalEl = document.createElement('div');
@@ -222,15 +323,24 @@ document.addEventListener('DOMContentLoaded', function(){
       type_id: document.getElementById('tfTypeId').value||null,
       gardu_induk_id: document.getElementById('tfGarduIndukId').value||null
     };
-    if(!payload.kode_aset) return;
+    if(!payload.kode_aset) {
+      showErrorNotification('Kode Aset wajib diisi!');
+      return;
+    }
     fetch('/api/transformator/save',{ method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify(payload)})
       .then(r=>r.json())
       .then(result=>{
-        modal.hide(); 
-        fetchList();
+        if(result.success === false) {
+          showErrorNotification(result.message || 'Gagal menyimpan data transformator');
+        } else {
+          showSuccessNotification(payload.id ? 'Data transformator berhasil diupdate!' : 'Data transformator berhasil disimpan!');
+          modal.hide(); 
+          fetchList();
+        }
       })
       .catch(error=>{
         console.error('Save error:', error);
+        showErrorNotification('Terjadi kesalahan saat menyimpan data');
       });
   });
 
@@ -250,19 +360,23 @@ document.addEventListener('DOMContentLoaded', function(){
   
   // Load type transformator dropdown
   function loadTypes(){
-    fetch('/api/type-transformator').then(r=>r.json()).then(list=>{
+    return fetch('/api/type-transformator').then(r=>r.json()).then(list=>{
       const sel = document.getElementById('tfTypeId');
       sel.innerHTML = '<option value="">Pilih Type</option>' + list.map(t=>`<option value="${t.id}">${escapeHtml(String(t.kapasitas_kva||''))} kVA - ${escapeHtml(String(t.tegangan_primer_kv||''))}kV / ${escapeHtml(String(t.tegangan_sekunder_v||''))}V</option>`).join('');
     });
   }
   
   // Load gardu induk dropdown
-  function loadGarduInduk(){
-    fetch('/api/gardu-induk')
+  function loadGarduInduk(selectedValue){
+    return fetch('/api/gardu-induk')
       .then(r=>r.json())
       .then(list=>{
         const sel = document.getElementById('tfGarduIndukId');
         sel.innerHTML = '<option value="">Pilih Gardu Induk</option>' + list.map(g=>`<option value="${g.id}">${escapeHtml(String(g.nama_gi||''))} - ${escapeHtml(String(g.kode_gi||''))}</option>`).join('');
+        // Set selected value after options are loaded
+        if (selectedValue) {
+          sel.value = selectedValue;
+        }
       })
       .catch(error => {
         console.error('Error loading gardu induk:', error);
@@ -285,23 +399,27 @@ document.addEventListener('DOMContentLoaded', function(){
       }
     });
     
-    // Set values if data provided
-    if (data) {
-      document.getElementById('tfId').value = data.id || ''; 
-      document.getElementById('tfKodeAset').value = data.kode_aset || ''; 
-      document.getElementById('tfNomorSeri').value = data.nomor_seri || ''; 
-      document.getElementById('tfMerk').value = data.merk || ''; 
-      document.getElementById('tfTahunOperasi').value = data.tahun_operasi || ''; 
-      document.getElementById('tfPenyulang').value = data.penyulang || ''; 
-      document.getElementById('tfLokasi').value = data.lokasi || ''; 
-      document.getElementById('tfStatus').value = data.status || ''; 
-      document.getElementById('tfTypeId').value = data.type_id || ''; 
-      document.getElementById('tfGarduIndukId').value = data.gardu_induk_id || ''; 
-      document.getElementById('tfKeterangan').value = data.keterangan || ''; 
-    }
+    // Load dropdowns first, then set values
+    Promise.all([
+      loadTypes(),
+      loadGarduInduk(data?.gardu_induk_id)
+    ]).then(() => {
+      // Set values after dropdowns are loaded
+      if (data) {
+        document.getElementById('tfId').value = data.id || ''; 
+        document.getElementById('tfKodeAset').value = data.kode_aset || ''; 
+        document.getElementById('tfNomorSeri').value = data.nomor_seri || ''; 
+        document.getElementById('tfMerk').value = data.merk || ''; 
+        document.getElementById('tfTahunOperasi').value = data.tahun_operasi || ''; 
+        document.getElementById('tfPenyulang').value = data.penyulang || ''; 
+        document.getElementById('tfLokasi').value = data.lokasi || ''; 
+        document.getElementById('tfStatus').value = data.status || ''; 
+        document.getElementById('tfTypeId').value = data.type_id || ''; 
+        // gardu_induk_id already set by loadGarduInduk()
+        document.getElementById('tfKeterangan').value = data.keterangan || ''; 
+      }
+    });
     
-    loadTypes();
-    loadGarduInduk();
     modal.show(); 
   }
 

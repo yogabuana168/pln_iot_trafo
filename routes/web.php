@@ -413,11 +413,14 @@ Route::get('/api/transformator', function (Request $request) {
               ->orWhere('merk','like',"%$q%")
               ->orWhere('lokasi','like',"%$q%")
               ->orWhere('penyulang','like',"%$q%")
-              ->orWhere('gardu','like',"%$q%")
               ->orWhereHas('type', function($t) use ($q) {
                   $t->where('kapasitas_kva','like',"%$q%")
                     ->orWhere('tegangan_primer_kv','like',"%$q%")
                     ->orWhere('tegangan_sekunder_v','like',"%$q%");
+              })
+              ->orWhereHas('garduInduk', function($g) use ($q) {
+                  $g->where('nama_gi','like',"%$q%")
+                    ->orWhere('kode_gi','like',"%$q%");
               });
         });
     }

@@ -188,6 +188,10 @@
   .#{$customPrefix}-app-sidebar-logo-default {
     display: block !important;
   }
+  
+  .#{$customPrefix}-app-sidebar-logo-light {
+    display: none !important;
+  }
 }
 
 [data-bs-theme=dark][data-sidebar=icon] {
@@ -207,6 +211,35 @@
 
   .#{$customPrefix}-app-sidebar-logo-minimize {
     display: block !important;
+  }
+}
+
+// Sidebar Color: Default or Light (Expanded)
+[data-sidebar-color=default],
+[data-sidebar-color=light],
+:not([data-sidebar-color]) {
+  .#{$customPrefix}-app-sidebar-logo-default {
+    display: block !important;
+  }
+  
+  .#{$customPrefix}-app-sidebar-logo-light {
+    display: none !important;
+  }
+}
+
+// Sidebar Color: Default or Light (Collapsed/Icon)
+[data-sidebar-color=default][data-sidebar=icon],
+[data-sidebar-color=light][data-sidebar=icon] {
+  .#{$customPrefix}-app-sidebar-logo-default {
+    display: none !important;
+  }
+  
+  .#{$customPrefix}-app-sidebar-logo-minimize {
+    display: block !important;
+  }
+  
+  .#{$customPrefix}-app-sidebar-logo-minimize-light {
+    display: none !important;
   }
 }
 

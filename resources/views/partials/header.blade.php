@@ -3,24 +3,13 @@
     <div class="container-fluid w-100">
         <div class="d-flex align-items-center">
             <div class="me-auto">
-                <div class="d-inline-flex align-items-center gap-5">
-                    @php
-                        $logoPath = DB::table('site_settings')->where('setting_key', 'logo_path')->value('setting_value');
-                        $logoUrl = $logoPath ? asset($logoPath) : asset('assets/images/logo-dark.png');
-                    @endphp
-                    <a href="/dashboard" class="fs-18 fw-semibold">
-                        <img style="max-width: 150px; max-height: 150px; width: auto; height: auto;" class="header-sidebar-logo-default d-none" alt="Logo" src="{{ $logoUrl }}">
-                        <img style="max-width: 150px; max-height: 150px; width: auto; height: auto;" class="header-sidebar-logo-light d-none" alt="Logo" src="{{ $logoUrl }}">
-                        <img style="max-width: 150px; max-height: 150px; width: auto; height: auto;" class="header-sidebar-logo-small d-none" alt="Logo" src="{{ $logoUrl }}">
-                        <img style="max-width: 150px; max-height: 150px; width: auto; height: auto;" class="header-sidebar-logo-small-light d-none" alt="Logo" src="{{ $logoUrl }}">
-                    </a>
+                <div class="d-inline-flex align-items-center gap-3">
                     <button type="button" class="vertical-toggle btn btn-light-light text-muted icon-btn fs-5 rounded-pill" id="toggleSidebar">
                         <i class="bi bi-arrow-bar-left header-icon"></i>
                     </button>
                     <button type="button" class="horizontal-toggle btn btn-light-light text-muted icon-btn fs-5 rounded-pill d-none" id="toggleHorizontal">
                         <i class="ri-menu-2-line header-icon"></i>
                     </button>
-                    
                 </div>
             </div>
             <div class="flex-shrink-0 d-flex align-items-center gap-1">

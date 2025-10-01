@@ -13,7 +13,7 @@ class Transformator extends Model
 
     protected $fillable = [
         'kode_aset','nomor_seri','merk','tahun_operasi','lokasi','koordinat_lat','koordinat_long',
-        'penyulang','gardu','status','keterangan','type_id','gardu_induk_id'
+        'penyulang','status','keterangan','type_id','gardu_induk_id'
     ];
 
     public function type()

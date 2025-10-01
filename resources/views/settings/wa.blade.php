@@ -1,104 +1,261 @@
 @extends('partials.layouts.master')
-
 @section('title', 'WA Setting')
 @section('pagetitle', 'WA Setting')
-
 @section('content')
-    <div class="row mt-4">
-        <div class="col-12 col-lg-8">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0"><i class="bi bi-whatsapp me-2"></i>WA Notification Settings</h5>
-                    <button class="btn btn-primary btn-sm" id="waSaveBtn"><i class="bi bi-check-lg me-1"></i>Save</button>
+<style>
+.wa-container-wrapper {
+    position: relative;
+    min-height: 600px;
+    margin-top: 20px;
+    margin-bottom: 80px;
+}
+.source-panel {
+    width: 100%;
+    background: white;
+    border: 2px solid #dee2e6;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    height: 600px;
+    overflow-y: auto;
+}
+.source-panel-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 10px 12px;
+    border-radius: 10px 10px 0 0;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    font-size: 0.9rem;
+}
+.source-item {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin: 8px;
+    cursor: move;
+    transition: all 0.2s;
+    font-size: 0.8rem;
+}
+.source-item:hover {
+    background: #e7f3ff;
+    border-color: #0d6efd;
+    transform: translateX(3px);
+}
+.source-item.dragging { opacity: 0.4; }
+.template-source-item {
+    background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+    color: white;
+    border: none;
+}
+.template-source-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(37,211,102,0.3);
+}
+.canvas-area {
+    position: relative;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    border-radius: 12px;
+    height: 600px;
+    overflow: auto;
+}
+.add-container-btn {
+    position: fixed;
+    bottom: 80px;
+    left: calc(50% - 80px);
+    z-index: 1001;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+}
+.auto-align-btn {
+    position: fixed;
+    bottom: 80px;
+    left: calc(50% + 80px);
+    z-index: 1001;
+    box-shadow: 0 6px 20px rgba(111,66,193,0.4);
+}
+.notification-container {
+    position: absolute;
+    width: 260px;
+    background: white;
+    border: 2px solid #0d6efd;
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    cursor: move;
+}
+.container-header {
+    background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+    color: white;
+    padding: 8px 10px;
+    border-radius: 10px 10px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: move;
+    font-size: 0.85rem;
+}
+.container-body {
+    padding: 10px;
+    max-height: 280px;
+    overflow-y: auto;
+}
+.template-slot {
+    background: #f0fff4;
+    border: 2px dashed #25d366;
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+    min-height: 50px;
+    margin-bottom: 10px;
+    font-size: 0.8rem;
+}
+.template-slot.filled {
+    background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+    color: white;
+    border-style: solid;
+}
+.recipients-slot {
+    background: #f8f9fa;
+    border: 2px dashed #6c757d;
+    border-radius: 8px;
+    padding: 10px;
+    min-height: 80px;
+    font-size: 0.8rem;
+}
+.recipients-slot.drag-over {
+    background: #e7f3ff;
+    border-color: #0d6efd;
+}
+.recipient-item {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 5px 8px;
+    border-radius: 6px;
+    margin-bottom: 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.75rem;
+}
+.recipient-item .remove-btn {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.7rem;
+}
+.save-all-btn {
+    position: absolute;
+    top: -50px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1002;
+    box-shadow: 0 6px 20px rgba(40,167,69,0.4);
+}
+#containerNameInput.is-invalid {
+    border-color: #dc3545;
+}
+#containerNameInput.is-invalid:focus {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25);
+}
+</style>
+
+<div class="wa-container-wrapper">
+    <button class="btn btn-success btn-sm save-all-btn" id="saveAllBtn" style="display:none;">
+        <i class="bi bi-check-lg me-2"></i>Save All Configurations
+    </button>
+
+    <div class="row g-3">
+        <!-- Left Panel: Users & Groups -->
+        <div class="col-12 col-lg-3">
+            <div class="source-panel">
+                <div class="source-panel-header">
+                    <i class="bi bi-people me-2"></i>Users & Groups
                 </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <label class="form-label">Audience</label>
-                        <div class="d-flex gap-3 flex-wrap">
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="audienceType" id="audAll" value="all" checked>
-                                <label class="form-check-label" for="audAll">All Users</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="audienceType" id="audGroup" value="group">
-                                <label class="form-check-label" for="audGroup">By User Group</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="audienceType" id="audUsers" value="users">
-                                <label class="form-check-label" for="audUsers">Specific Users</label>
-                            </div>
-                        </div>
+                <div class="p-2">
+                    <input type="text" class="form-control form-control-sm mb-2" id="searchRecipients" placeholder="🔍 Search...">
+                </div>
+                <ul class="nav nav-tabs nav-justified" style="padding: 0 8px;">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-bs-toggle="tab" href="#groupsTab" style="font-size:0.75rem; padding: 6px 8px;">Groups</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#usersTab" style="font-size:0.75rem; padding: 6px 8px;">Users</a>
+                    </li>
+                </ul>
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="groupsTab">
+                        <div id="groupsList"></div>
                     </div>
-
-                    <div class="mb-3 d-none" id="groupSelectWrap">
-                        <label class="form-label">Select Groups</label>
-                        <select class="form-select" id="groupSelect" multiple></select>
-                        <small class="text-muted">Pilih satu atau lebih group.</small>
-                    </div>
-
-                    <div class="mb-3 d-none" id="userSelectWrap">
-                        <label class="form-label">Select Users</label>
-                        <select class="form-select" id="userSelect" multiple></select>
-                        <small class="text-muted">Pilih user penerima notifikasi.</small>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Template</label>
-                        <select class="form-select" id="templateSelect"></select>
-                        <small class="text-muted">Template diambil dari halaman Notification Templates.</small>
+                    <div class="tab-pane fade" id="usersTab">
+                        <div id="usersList"></div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Center: Canvas Area -->
+        <div class="col-12 col-lg-6">
+            <div class="canvas-area" id="canvasArea">
+                <div class="text-center text-muted" style="padding-top: 30%; font-size: 1rem;">
+                    <i class="bi bi-plus-circle" style="font-size: 3rem; opacity: 0.3;"></i>
+                    <p class="mb-0">Click "Add Container" to start</p>
+                    <p class="small">Drag templates and recipients into containers</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Templates -->
+        <div class="col-12 col-lg-3">
+            <div class="source-panel">
+                <div class="source-panel-header" style="background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);">
+                    <i class="bi bi-whatsapp me-2"></i>WA Templates
+                </div>
+                <div class="p-2">
+                    <input type="text" class="form-control form-control-sm mb-2" id="searchTemplates" placeholder="🔍 Search...">
+                </div>
+                <div id="templatesList"></div>
+            </div>
+        </div>
     </div>
+
+    <button class="btn btn-primary add-container-btn" id="addContainerBtn">
+        <i class="bi bi-plus-circle me-2"></i>Add Container
+    </button>
+    
+    <button class="btn btn-secondary auto-align-btn" id="autoAlignBtn" style="display:none;">
+        <i class="bi bi-grid-3x3-gap me-2"></i>Auto Align
+    </button>
+</div>
+
+<!-- Modal for Container Name -->
+<div class="modal fade" id="containerNameModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-box me-2"></i>Create New Container</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <label for="containerNameInput" class="form-label">Container Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="containerNameInput" placeholder="e.g. Critical Alerts, Daily Reports, etc." autofocus>
+                <small class="text-muted">Give this container a meaningful name to identify its purpose</small>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmCreateContainer">
+                    <i class="bi bi-plus-circle me-2"></i>Create Container
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
+
 @section('js')
-<script>
-document.addEventListener('DOMContentLoaded', function(){
-  const audAll = document.getElementById('audAll');
-  const audGroup = document.getElementById('audGroup');
-  const audUsers = document.getElementById('audUsers');
-  const groupWrap = document.getElementById('groupSelectWrap');
-  const userWrap = document.getElementById('userSelectWrap');
-  const groupSelect = document.getElementById('groupSelect');
-  const userSelect = document.getElementById('userSelect');
-  const templateSelect = document.getElementById('templateSelect');
-  const saveBtn = document.getElementById('waSaveBtn');
-
-  function refreshVisibility(){
-    groupWrap.classList.toggle('d-none', !audGroup.checked);
-    userWrap.classList.toggle('d-none', !audUsers.checked);
-  }
-  [audAll,audGroup,audUsers].forEach(el=> el.addEventListener('change', refreshVisibility));
-
-  // Load options and existing setting
-  fetch('/api/wa/audience-options').then(r=>r.json()).then(data=>{
-    groupSelect.innerHTML = (data.groups||[]).map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
-    userSelect.innerHTML = (data.users||[]).map(u=>`<option value="${u.id}">${u.name} &lt;${u.email}&gt;</option>`).join('');
-    templateSelect.innerHTML = '<option value="">Pilih Template</option>' + (data.templates||[]).filter(t=>t.type==='whatsapp' && t.status==='active').map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
-  }).then(()=>{
-    return fetch('/api/wa/setting').then(r=>r.json()).then(s=>{
-      if(!s) return; 
-      if(s.audience_type==='group') audGroup.checked=true; else if(s.audience_type==='users') audUsers.checked=true; else audAll.checked=true;
-      refreshVisibility();
-      const ids = s.audience_ids||[];
-      if (Array.isArray(ids)) {
-        if (s.audience_type==='group') Array.from(groupSelect.options).forEach(o=>{ o.selected = ids.includes(parseInt(o.value)); });
-        if (s.audience_type==='users') Array.from(userSelect.options).forEach(o=>{ o.selected = ids.includes(parseInt(o.value)); });
-      }
-      if (s.template_id) templateSelect.value = String(s.template_id);
-    });
-  });
-
-  saveBtn.addEventListener('click', ()=>{
-    const audience_type = audGroup.checked ? 'group' : (audUsers.checked ? 'users' : 'all');
-    let audience_ids = [];
-    if (audience_type==='group') audience_ids = Array.from(groupSelect.selectedOptions).map(o=>parseInt(o.value));
-    if (audience_type==='users') audience_ids = Array.from(userSelect.selectedOptions).map(o=>parseInt(o.value));
-    const template_id = templateSelect.value ? parseInt(templateSelect.value) : null;
-    fetch('/api/wa/setting/save', { method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify({ audience_type, audience_ids, template_id }) })
-      .then(r=>r.json()).then(()=>{ alert('Saved'); });
-  });
-});
-</script>
+<script src="{{ asset('assets/js/wa-containers.js') }}?v={{ time() }}"></script>
 @endsection
