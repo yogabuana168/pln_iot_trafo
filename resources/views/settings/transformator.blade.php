@@ -49,6 +49,7 @@
                                 <th style="width:100px">Type</th>
                                 <th style="width:100px">Kapasitas</th>
                                 <th>Lokasi</th>
+                                <th style="width:150px">Gardu Induk</th>
                                 <th style="width:120px">GPS</th>
                                 <th style="width:120px" class="text-end">Action</th>
                             </tr>
@@ -91,6 +92,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const rows = (p.data||[]).map(r => {
       const gps = (r.koordinat_lat && r.koordinat_long) ? `${r.koordinat_lat}, ${r.koordinat_long}` : '-';
       const typeStr = r.type ? `${r.type.kapasitas_kva||''} kVA` : '-';
+      const garduStr = r.gardu_induk ? `${r.gardu_induk.nama_gi||''}` : (r.gardu || '-');
       return `
       <tr data-id="${r.id}">
         <td><input type="checkbox" class="row-check form-check-input"></td>
@@ -99,6 +101,7 @@ document.addEventListener('DOMContentLoaded', function(){
         <td>${escapeHtml(r.merk||'')}</td>
         <td><span class="badge bg-secondary">${escapeHtml(typeStr)}</span></td>
         <td><small class="text-muted">${escapeHtml(r.lokasi||'-')}</small></td>
+        <td><small class="text-muted">${escapeHtml(garduStr)}</small></td>
         <td><small class="text-muted">${escapeHtml(gps)}</small></td>
         <td class="text-end">
           <button class="btn btn-sm btn-outline-secondary me-1" onclick="return trafoEdit(${r.id})"><i class="bi bi-pencil"></i></button>
@@ -106,7 +109,7 @@ document.addEventListener('DOMContentLoaded', function(){
         </td>
       </tr>`;
     }).join('');
-    tbody.innerHTML = rows || '<tr><td colspan="8" class="text-center text-muted py-4">No data</td></tr>';
+    tbody.innerHTML = rows || '<tr><td colspan="9" class="text-center text-muted py-4">No data</td></tr>';
     summary.textContent = `Showing ${p.from||0}-${p.to||0} of ${p.total||0}`;
     renderPager(p);
   }
@@ -175,7 +178,11 @@ document.addEventListener('DOMContentLoaded', function(){
             </div>
             <div class="col-md-6 mb-2"><label class="form-label">Tahun Operasi</label><select class="form-select form-select-sm" id="tfTahunOperasi"></select></div>
             <div class="col-md-6 mb-2"><label class="form-label">Feeder/Penyulang</label><input class="form-control form-control-sm" id="tfPenyulang"></div>
-            <div class="col-md-6 mb-2"><label class="form-label">Gardu</label><input class="form-control form-control-sm" id="tfGardu"></div>
+            <div class="col-md-6 mb-2"><label class="form-label">Gardu Induk</label>
+                <select class="form-select form-select-sm" id="tfGarduIndukId">
+                    <option value="">Pilih Gardu Induk</option>
+                </select>
+            </div>
             <div class="col-12 mb-2"><label class="form-label">Lokasi (alamat singkat)</label><input class="form-control form-control-sm" id="tfLokasi"></div>
             <div class="col-md-6 mb-2"><label class="form-label">Status</label><select class="form-select form-select-sm" id="tfStatus">
                 <option value="">Pilih Status</option>
@@ -213,7 +220,8 @@ document.addEventListener('DOMContentLoaded', function(){
       gardu: document.getElementById('tfGardu').value.trim()||null,
       status: document.getElementById('tfStatus').value.trim()||null,
       keterangan: document.getElementById('tfKeterangan').value.trim()||null,
-      type_id: document.getElementById('tfTypeId').value||null
+      type_id: document.getElementById('tfTypeId').value||null,
+      gardu_induk_id: document.getElementById('tfGarduIndukId').value||null
     };
     if(!payload.kode_aset) return;
     fetch('/api/transformator/save',{ method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify(payload)}).then(r=>r.json()).then(()=>{ modal.hide(); fetchList(); });
@@ -241,6 +249,14 @@ document.addEventListener('DOMContentLoaded', function(){
     });
   }
   
+  // Load gardu induk dropdown
+  function loadGarduInduk(){
+    fetch('/api/gardu-induk').then(r=>r.json()).then(list=>{
+      const sel = document.getElementById('tfGarduIndukId');
+      sel.innerHTML = '<option value="">Pilih Gardu Induk</option>' + list.map(g=>`<option value="${g.id}">${escapeHtml(String(g.nama_gi||''))} - ${escapeHtml(String(g.kode_gi||''))}</option>`).join('');
+    });
+  }
+  
   function openModal(data){ 
     document.getElementById('tfId').value=data?.id||''; 
     document.getElementById('tfKodeAset').value=data?.kode_aset||''; 
@@ -252,8 +268,10 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('tfLokasi').value=data?.lokasi||''; 
     document.getElementById('tfStatus').value=data?.status||''; 
     document.getElementById('tfTypeId').value=data?.type_id||''; 
+    document.getElementById('tfGarduIndukId').value=data?.gardu_induk_id||''; 
     document.getElementById('tfKeterangan').value=data?.keterangan||''; 
     loadTypes();
+    loadGarduInduk();
     modal.show(); 
   }
 

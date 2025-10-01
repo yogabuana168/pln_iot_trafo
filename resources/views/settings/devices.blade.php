@@ -361,13 +361,13 @@ document.addEventListener('DOMContentLoaded', function(){
     const rows = (p.data||[]).map(r => `
       <tr data-id="${r.id}">
         <td><input type="checkbox" class="row-check form-check-input"></td>
-        <td>${escapeHtml(r.nama_gardu)}</td>
+        <td>${escapeHtml(r.nama_gi)}</td>
         <td>${escapeHtml(r.alamat ?? '')}</td>
-        <td>${escapeHtml(r.kode_gardu ?? '')}</td>
+        <td>${escapeHtml(r.kode_gi ?? '')}</td>
         <td>${escapeHtml(r.kapasitas_mva ?? '')}</td>
-        <td>${escapeHtml(r.tegangan_kv ?? '')}</td>
+        <td>${escapeHtml(r.tegangan_level_in_kv ?? '')}</td>
         <td><span class="badge ${r.status === 'aktif' ? 'bg-success' : 'bg-secondary'}">${escapeHtml(r.status ?? '')}</span></td>
-        <td>${escapeHtml(r.tanggal_operasi ? new Date(r.tanggal_operasi).toLocaleDateString('id-ID') : '')}</td>
+        <td>${escapeHtml(r.tahun_operasi ?? '')}</td>
         <td class="text-end">
           <button class="btn btn-sm btn-outline-secondary me-1" onclick="return garduEdit(${r.id})"><i class="bi bi-pencil"></i></button>
           <button class="btn btn-sm btn-outline-danger" onclick="return garduDelete(${r.id})"><i class="bi bi-trash"></i></button>
@@ -404,13 +404,13 @@ document.addEventListener('DOMContentLoaded', function(){
   window.garduEdit = function(id){
     const tr = garduTbody.querySelector(`tr[data-id="${id}"]`);
     openGarduModal({ id,
-      nama_gardu: tr.children[1].textContent.trim(),
+      nama_gi: tr.children[1].textContent.trim(),
       alamat: tr.children[2].textContent.trim(),
-      kode_gardu: tr.children[3].textContent.trim(),
+      kode_gi: tr.children[3].textContent.trim(),
       kapasitas_mva: tr.children[4].textContent.trim(),
-      tegangan_kv: tr.children[5].textContent.trim(),
+      tegangan_level_in_kv: tr.children[5].textContent.trim(),
       status: tr.children[6].textContent.trim().toLowerCase(),
-      tanggal_operasi: tr.children[7].textContent.trim(),
+      tahun_operasi: tr.children[7].textContent.trim(),
     });
     return false;
   };
@@ -427,7 +427,7 @@ document.addEventListener('DOMContentLoaded', function(){
           <input type="hidden" id="gdId">
           <div class="row">
             <div class="col-md-6 mb-3"><label class="form-label">Nama Gardu Induk *</label><input type="text" class="form-control form-control-sm" id="gdNama" required></div>
-            <div class="col-md-6 mb-3"><label class="form-label">Kode Gardu</label><input type="text" class="form-control form-control-sm" id="gdKode"></div>
+            <div class="col-md-6 mb-3"><label class="form-label">Kode Gardu *</label><input type="text" class="form-control form-control-sm" id="gdKode" required></div>
             <div class="col-12 mb-3"><label class="form-label">Alamat *</label><textarea class="form-control form-control-sm" id="gdAlamat" rows="2" required></textarea></div>
             <div class="col-md-4 mb-3"><label class="form-label">Kapasitas (MVA)</label>
               <select class="form-select form-select-sm" id="gdKapasitas">
@@ -445,8 +445,17 @@ document.addEventListener('DOMContentLoaded', function(){
                 <option value="200">200 MVA</option>
               </select>
             </div>
-            <div class="col-md-4 mb-3"><label class="form-label">Tegangan (kV)</label>
-              <select class="form-select form-select-sm" id="gdTegangan">
+            <div class="col-md-4 mb-3"><label class="form-label">Tegangan Level In (kV)</label>
+              <select class="form-select form-select-sm" id="gdTeganganIn">
+                <option value="">Pilih Tegangan</option>
+                <option value="20">20 kV</option>
+                <option value="150">150 kV</option>
+                <option value="275">275 kV</option>
+                <option value="500">500 kV</option>
+              </select>
+            </div>
+            <div class="col-md-4 mb-3"><label class="form-label">Tegangan Level Out (kV)</label>
+              <select class="form-select form-select-sm" id="gdTeganganOut">
                 <option value="">Pilih Tegangan</option>
                 <option value="20">20 kV</option>
                 <option value="150">150 kV</option>
@@ -462,8 +471,13 @@ document.addEventListener('DOMContentLoaded', function(){
                 <option value="maintenance">Maintenance</option>
               </select>
             </div>
-            <div class="col-md-6 mb-3"><label class="form-label">Tanggal Operasi</label><input type="date" class="form-control form-control-sm" id="gdTanggal"></div>
-            <div class="col-md-6 mb-3"><label class="form-label">Koordinat GPS</label><input type="text" class="form-control form-control-sm" id="gdKoordinat" placeholder="Lat, Lng"></div>
+            <div class="col-md-4 mb-3"><label class="form-label">Tahun Operasi</label><input type="number" class="form-control form-control-sm" id="gdTahun" min="1900" max="2100"></div>
+            <div class="col-md-4 mb-3"><label class="form-label">Jumlah Bay</label><input type="number" class="form-control form-control-sm" id="gdBay" min="1"></div>
+            <div class="col-md-6 mb-3"><label class="form-label">Kabupaten</label><input type="text" class="form-control form-control-sm" id="gdKabupaten"></div>
+            <div class="col-md-6 mb-3"><label class="form-label">Provinsi</label><input type="text" class="form-control form-control-sm" id="gdProvinsi"></div>
+            <div class="col-md-6 mb-3"><label class="form-label">Koordinat Lat</label><input type="number" step="0.000001" class="form-control form-control-sm" id="gdLat" placeholder="-6.200000"></div>
+            <div class="col-md-6 mb-3"><label class="form-label">Koordinat Long</label><input type="number" step="0.000001" class="form-control form-control-sm" id="gdLong" placeholder="106.816666"></div>
+            <div class="col-12 mb-3"><label class="form-label">Keterangan</label><textarea class="form-control form-control-sm" id="gdKeterangan" rows="2"></textarea></div>
           </div>
         </form>
       </div>
@@ -474,27 +488,52 @@ document.addEventListener('DOMContentLoaded', function(){
   const garduModal = new bootstrap.Modal(garduModalEl, { backdrop: 'static', keyboard: false });
   document.getElementById('gdSave').addEventListener('click', ()=>{
     const payload={ id: document.getElementById('gdId').value||undefined,
-      nama_gardu: document.getElementById('gdNama').value.trim(),
+      kode_gi: document.getElementById('gdKode').value.trim(),
+      nama_gi: document.getElementById('gdNama').value.trim(),
       alamat: document.getElementById('gdAlamat').value.trim(),
-      kode_gardu: document.getElementById('gdKode').value.trim()||null,
+      koordinat_lat: document.getElementById('gdLat').value?parseFloat(document.getElementById('gdLat').value):null,
+      koordinat_long: document.getElementById('gdLong').value?parseFloat(document.getElementById('gdLong').value):null,
+      kabupaten: document.getElementById('gdKabupaten').value.trim()||null,
+      provinsi: document.getElementById('gdProvinsi').value.trim()||null,
+      tegangan_level_in_kv: document.getElementById('gdTeganganIn').value?parseFloat(document.getElementById('gdTeganganIn').value):null,
+      tegangan_level_out_kv: document.getElementById('gdTeganganOut').value?parseFloat(document.getElementById('gdTeganganOut').value):null,
+      jumlah_bay: document.getElementById('gdBay').value?parseInt(document.getElementById('gdBay').value):null,
       kapasitas_mva: document.getElementById('gdKapasitas').value?parseFloat(document.getElementById('gdKapasitas').value):null,
-      tegangan_kv: document.getElementById('gdTegangan').value?parseFloat(document.getElementById('gdTegangan').value):null,
+      tahun_operasi: document.getElementById('gdTahun').value?parseInt(document.getElementById('gdTahun').value):null,
       status: document.getElementById('gdStatus').value.trim(),
-      tanggal_operasi: document.getElementById('gdTanggal').value||null,
-      koordinat: document.getElementById('gdKoordinat').value.trim()||null };
-    if(!payload.nama_gardu || !payload.alamat || !payload.status) return;
-    fetch('/api/gardu-induk/save',{ method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify(payload)}).then(r=>r.json()).then(()=>{ garduModal.hide(); fetchGarduList(); });
+      keterangan: document.getElementById('gdKeterangan').value.trim()||null };
+    if(!payload.nama_gi || !payload.alamat || !payload.status || !payload.kode_gi) {
+      alert('Nama Gardu Induk, Kode Gardu, Alamat, dan Status harus diisi!');
+      return;
+    }
+    fetch('/api/gardu-induk/save',{ method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify(payload)})
+      .then(r=>r.json())
+      .then(result=>{ 
+        garduModal.hide(); 
+        fetchGarduList();
+        if(result.error) alert('Error: ' + result.error);
+      })
+      .catch(error=>{
+        console.error('Save error:', error);
+        alert('Terjadi kesalahan saat menyimpan data');
+      });
   });
   function openGarduModal(data){ 
     document.getElementById('gdId').value=data?.id||''; 
-    document.getElementById('gdNama').value=data?.nama_gardu||''; 
-    document.getElementById('gdKode').value=data?.kode_gardu||''; 
+    document.getElementById('gdNama').value=data?.nama_gi||''; 
+    document.getElementById('gdKode').value=data?.kode_gi||''; 
     document.getElementById('gdAlamat').value=data?.alamat||''; 
     document.getElementById('gdKapasitas').value=data?.kapasitas_mva||''; 
-    document.getElementById('gdTegangan').value=data?.tegangan_kv||''; 
+    document.getElementById('gdTeganganIn').value=data?.tegangan_level_in_kv||''; 
+    document.getElementById('gdTeganganOut').value=data?.tegangan_level_out_kv||''; 
     document.getElementById('gdStatus').value=data?.status||''; 
-    document.getElementById('gdTanggal').value=data?.tanggal_operasi||''; 
-    document.getElementById('gdKoordinat').value=data?.koordinat||''; 
+    document.getElementById('gdTahun').value=data?.tahun_operasi||''; 
+    document.getElementById('gdBay').value=data?.jumlah_bay||''; 
+    document.getElementById('gdKabupaten').value=data?.kabupaten||''; 
+    document.getElementById('gdProvinsi').value=data?.provinsi||''; 
+    document.getElementById('gdLat').value=data?.koordinat_lat||''; 
+    document.getElementById('gdLong').value=data?.koordinat_long||''; 
+    document.getElementById('gdKeterangan').value=data?.keterangan||''; 
     garduModal.show(); 
   }
 

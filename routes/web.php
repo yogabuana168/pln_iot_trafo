@@ -405,7 +405,7 @@ Route::get('/settings/devices', function () {
 Route::get('/api/transformator', function (Request $request) {
     $q = trim((string) $request->query('q', ''));
     $perPage = max(1, min(100, (int) $request->query('per_page', 10)));
-    $query = TransformatorModel::with('type');
+    $query = TransformatorModel::with(['type', 'garduInduk']);
     if ($q !== '') {
         $query->where(function($w) use ($q) {
             $w->where('kode_aset','like',"%$q%")
@@ -438,7 +438,8 @@ Route::post('/api/transformator/save', function (Request $request) {
         'gardu' => 'nullable|string|max:100',
         'status' => 'nullable|string|max:20',
         'keterangan' => 'nullable|string',
-        'type_id' => 'nullable|integer|exists:type_transformator,id'
+        'type_id' => 'nullable|integer|exists:type_transformator,id',
+        'gardu_induk_id' => 'nullable|integer|exists:gardu_induk,id'
     ]);
     $id = $request->input('id');
     if ($id) {
@@ -446,7 +447,7 @@ Route::post('/api/transformator/save', function (Request $request) {
         if (!$row) return response()->json(['success'=>false,'message'=>'Not found'],404);
         $row->update($request->only([
             'kode_aset','nomor_seri','merk','tahun_operasi','lokasi','koordinat_lat','koordinat_long',
-            'penyulang','gardu','status','keterangan','type_id'
+            'penyulang','gardu','status','keterangan','type_id','gardu_induk_id'
         ]));
     } else {
         if (TransformatorModel::where('kode_aset',$request->kode_aset)->exists()) {
@@ -454,7 +455,7 @@ Route::post('/api/transformator/save', function (Request $request) {
         }
         TransformatorModel::create($request->only([
             'kode_aset','nomor_seri','merk','tahun_operasi','lokasi','koordinat_lat','koordinat_long',
-            'penyulang','gardu','status','keterangan','type_id'
+            'penyulang','gardu','status','keterangan','type_id','gardu_induk_id'
         ]));
     }
     return response()->json(['success'=>true]);
@@ -481,9 +482,15 @@ Route::get('/api/type-transformator', function (Request $request) {
     return response()->json($list);
 });
 
+// Gardu Induk list for dropdown
+Route::get('/api/gardu-induk', function (Request $request) {
+    $list = \App\Models\GarduInduk::orderBy('nama_gi')->get();
+    return response()->json($list);
+});
+
 // Show single transformator
 Route::get('/api/transformator/show/{id}', function ($id) {
-    $row = TransformatorModel::with('type')->find($id);
+    $row = TransformatorModel::with(['type', 'garduInduk'])->find($id);
     if (!$row) return response()->json(['success'=>false,'message'=>'Not found'],404);
     return response()->json(['success'=>true,'data'=>$row]);
 });
@@ -544,6 +551,77 @@ Route::post('/api/type-transformator/bulk', function (Request $request) {
     $ids = (array) $request->input('ids', []);
     if ($action === 'delete') {
         TypeTransformator::whereIn('id',$ids)->delete();
+    }
+    return response()->json(['success'=>true]);
+});
+
+// Gardu Induk CRUD API Routes
+Route::get('/api/gardu-induk/list', function (Request $request) {
+    $q = trim((string) $request->query('q',''));
+    $perPage = max(1, min(100, (int) $request->query('per_page', 10)));
+    $query = \App\Models\GarduInduk::query();
+    if ($q !== '') {
+        $query->where(function($w) use ($q){
+            $w->where('nama_gi','like',"%$q%")
+              ->orWhere('kode_gi','like',"%$q%")
+              ->orWhere('alamat','like',"%$q%")
+              ->orWhere('kabupaten','like',"%$q%")
+              ->orWhere('provinsi','like',"%$q%");
+        });
+    }
+    $p = $query->orderByDesc('updated_at')->paginate($perPage)->appends(['q'=>$q,'per_page'=>$perPage]);
+    return response()->json($p);
+});
+
+Route::post('/api/gardu-induk/save', function (Request $request) {
+    $request->validate([
+        'kode_gi' => 'required|string|max:50',
+        'nama_gi' => 'required|string|max:100',
+        'alamat' => 'required|string',
+        'koordinat_lat' => 'nullable|numeric|between:-90,90',
+        'koordinat_long' => 'nullable|numeric|between:-180,180',
+        'kabupaten' => 'nullable|string|max:100',
+        'provinsi' => 'nullable|string|max:100',
+        'tegangan_level_in_kv' => 'nullable|numeric|min:0',
+        'tegangan_level_out_kv' => 'nullable|numeric|min:0',
+        'jumlah_bay' => 'nullable|integer|min:1',
+        'kapasitas_mva' => 'nullable|numeric|min:0',
+        'tahun_operasi' => 'nullable|integer|min:1900|max:2100',
+        'status' => 'required|string|in:aktif,non_aktif,maintenance',
+        'keterangan' => 'nullable|string'
+    ]);
+    
+    $id = $request->input('id');
+    $data = $request->only([
+        'kode_gi', 'nama_gi', 'alamat', 'koordinat_lat', 'koordinat_long',
+        'kabupaten', 'provinsi', 'tegangan_level_in_kv', 'tegangan_level_out_kv',
+        'jumlah_bay', 'kapasitas_mva', 'tahun_operasi', 'status', 'keterangan'
+    ]);
+    
+    if ($id) {
+        $row = \App\Models\GarduInduk::find($id);
+        if(!$row) return response()->json(['success'=>false,'message'=>'Not found'],404);
+        $row->update($data);
+    } else {
+        if (\App\Models\GarduInduk::where('kode_gi',$request->kode_gi)->exists()) {
+            return response()->json(['success'=>false,'message'=>'Kode Gardu Induk sudah ada'],422);
+        }
+        \App\Models\GarduInduk::create($data);
+    }
+    return response()->json(['success'=>true]);
+});
+
+Route::post('/api/gardu-induk/delete', function (Request $request) {
+    $id = (int) $request->input('id');
+    \App\Models\GarduInduk::where('id',$id)->delete();
+    return response()->json(['success'=>true]);
+});
+
+Route::post('/api/gardu-induk/bulk', function (Request $request) {
+    $action = $request->input('action');
+    $ids = (array) $request->input('ids', []);
+    if ($action === 'delete') {
+        \App\Models\GarduInduk::whereIn('id',$ids)->delete();
     }
     return response()->json(['success'=>true]);
 });

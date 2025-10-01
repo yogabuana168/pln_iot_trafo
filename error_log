@@ -32,3 +32,6 @@ Stack trace:
 [30-Sep-2025 12:14:36 UTC] PHP Warning:  PHP Startup: Invalid date.timezone value 'Asia/Hongkong', using 'UTC' instead in Unknown on line 0
 [30-Sep-2025 12:24:24 UTC] PHP Warning:  PHP Startup: Invalid date.timezone value 'Asia/Hongkong', using 'UTC' instead in Unknown on line 0
 [30-Sep-2025 12:25:03 UTC] PHP Warning:  PHP Startup: Invalid date.timezone value 'Asia/Hongkong', using 'UTC' instead in Unknown on line 0
+[01-Oct-2025 01:02:32 UTC] PHP Warning:  PHP Startup: Invalid date.timezone value 'Asia/Hongkong', using 'UTC' instead in Unknown on line 0
+[01-Oct-2025 02:51:50 UTC] PHP Warning:  PHP Startup: Invalid date.timezone value 'Asia/Hongkong', using 'UTC' instead in Unknown on line 0
+[01-Oct-2025 02:52:17 UTC] PHP Warning:  PHP Startup: Invalid date.timezone value 'Asia/Hongkong', using 'UTC' instead in Unknown on line 0
