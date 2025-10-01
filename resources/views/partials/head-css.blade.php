@@ -18,4 +18,18 @@
 [data-sidebar="icon"] #sidebar .pe-nav-content,
 [data-sidebar="icon"] #sidebar .pe-nav-arrow { display: none !important; }
 [data-sidebar="icon"] #sidebar .pe-nav-icon { margin: 0 auto; }
+
+/* FIX: Sidebar submenu text wrapping - No text cut off */
+.pe-slide-menu .pe-nav-link,
+.pe-slide-sub-menu .pe-nav-link {
+    padding: 12px 20px 12px 52px !important;
+}
+
+.pe-slide-menu .pe-nav-link .pe-nav-content,
+.pe-slide-sub-menu .pe-nav-link .pe-nav-content {
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    line-height: 1.4 !important;
+    overflow: visible !important;
+}
 </style>
