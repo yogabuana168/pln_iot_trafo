@@ -138,7 +138,10 @@ document.addEventListener('DOMContentLoaded', function(){
       .then(r=>r.json()).then(()=> fetchList());
   });
 
-  createBtn.addEventListener('click', ()=> openModal());
+  createBtn.addEventListener('click', ()=> {
+    console.log('Create button clicked');
+    openModal();
+  });
   window.trafoEdit = function(id){
     fetch(`/api/transformator/show/${id}`).then(r=>r.json()).then(res=>{
       if(!res.success) return;
@@ -201,6 +204,7 @@ document.addEventListener('DOMContentLoaded', function(){
   </div>`;
   document.body.appendChild(modalEl);
   const modal = new bootstrap.Modal(modalEl, { backdrop: 'static', keyboard: false });
+  console.log('Modal created:', modal);
   document.getElementById('tfSave').addEventListener('click', ()=>{
     const payload={
       id: document.getElementById('tfId').value||undefined,
@@ -251,13 +255,20 @@ document.addEventListener('DOMContentLoaded', function(){
   
   // Load gardu induk dropdown
   function loadGarduInduk(){
-    fetch('/api/gardu-induk').then(r=>r.json()).then(list=>{
-      const sel = document.getElementById('tfGarduIndukId');
-      sel.innerHTML = '<option value="">Pilih Gardu Induk</option>' + list.map(g=>`<option value="${g.id}">${escapeHtml(String(g.nama_gi||''))} - ${escapeHtml(String(g.kode_gi||''))}</option>`).join('');
-    });
+    fetch('/api/gardu-induk')
+      .then(r=>r.json())
+      .then(list=>{
+        console.log('Gardu Induk list loaded:', list);
+        const sel = document.getElementById('tfGarduIndukId');
+        sel.innerHTML = '<option value="">Pilih Gardu Induk</option>' + list.map(g=>`<option value="${g.id}">${escapeHtml(String(g.nama_gi||''))} - ${escapeHtml(String(g.kode_gi||''))}</option>`).join('');
+      })
+      .catch(error => {
+        console.error('Error loading gardu induk:', error);
+      });
   }
   
   function openModal(data){ 
+    console.log('Opening modal with data:', data);
     document.getElementById('tfId').value=data?.id||''; 
     document.getElementById('tfKodeAset').value=data?.kode_aset||''; 
     document.getElementById('tfNomorSeri').value=data?.nomor_seri||''; 
@@ -272,6 +283,7 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('tfKeterangan').value=data?.keterangan||''; 
     loadTypes();
     loadGarduInduk();
+    console.log('About to show modal');
     modal.show(); 
   }
 
