@@ -225,8 +225,19 @@ document.addEventListener('DOMContentLoaded', function(){
       type_id: document.getElementById('tfTypeId').value||null,
       gardu_induk_id: document.getElementById('tfGarduIndukId').value||null
     };
+    console.log('Payload being sent:', payload);
+    console.log('Gardu Induk ID selected:', document.getElementById('tfGarduIndukId').value);
     if(!payload.kode_aset) return;
-    fetch('/api/transformator/save',{ method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify(payload)}).then(r=>r.json()).then(()=>{ modal.hide(); fetchList(); });
+    fetch('/api/transformator/save',{ method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify(payload)})
+      .then(r=>r.json())
+      .then(result=>{
+        console.log('Save result:', result);
+        modal.hide(); 
+        fetchList();
+      })
+      .catch(error=>{
+        console.error('Save error:', error);
+      });
   });
 
   // Toggle custom merk input

@@ -426,6 +426,7 @@ Route::get('/api/transformator', function (Request $request) {
 });
 
 Route::post('/api/transformator/save', function (Request $request) {
+    \Log::info('Transformator save request:', $request->all());
     $request->validate([
         'kode_aset' => 'required|string|max:50',
         'nomor_seri' => 'nullable|string|max:100',
@@ -435,7 +436,6 @@ Route::post('/api/transformator/save', function (Request $request) {
         'koordinat_lat' => 'nullable|numeric',
         'koordinat_long' => 'nullable|numeric',
         'penyulang' => 'nullable|string|max:100',
-        'gardu' => 'nullable|string|max:100',
         'status' => 'nullable|string|max:20',
         'keterangan' => 'nullable|string',
         'type_id' => 'nullable|integer|exists:type_transformator,id',
@@ -447,7 +447,7 @@ Route::post('/api/transformator/save', function (Request $request) {
         if (!$row) return response()->json(['success'=>false,'message'=>'Not found'],404);
         $row->update($request->only([
             'kode_aset','nomor_seri','merk','tahun_operasi','lokasi','koordinat_lat','koordinat_long',
-            'penyulang','gardu','status','keterangan','type_id','gardu_induk_id'
+            'penyulang','status','keterangan','type_id','gardu_induk_id'
         ]));
     } else {
         if (TransformatorModel::where('kode_aset',$request->kode_aset)->exists()) {
@@ -455,7 +455,7 @@ Route::post('/api/transformator/save', function (Request $request) {
         }
         TransformatorModel::create($request->only([
             'kode_aset','nomor_seri','merk','tahun_operasi','lokasi','koordinat_lat','koordinat_long',
-            'penyulang','gardu','status','keterangan','type_id','gardu_induk_id'
+            'penyulang','status','keterangan','type_id','gardu_induk_id'
         ]));
     }
     return response()->json(['success'=>true]);
