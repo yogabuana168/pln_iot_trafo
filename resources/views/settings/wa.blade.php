@@ -148,11 +148,9 @@
     font-size: 0.7rem;
 }
 .save-all-btn {
-    position: absolute;
-    top: -50px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 1002;
+    position: relative;
+    display: inline-block;
+    margin-bottom: 15px;
     box-shadow: 0 6px 20px rgba(40,167,69,0.4);
 }
 #containerNameInput.is-invalid {
@@ -165,9 +163,11 @@
 </style>
 
 <div class="wa-container-wrapper">
-    <button class="btn btn-success btn-sm save-all-btn" id="saveAllBtn" style="display:none;">
-        <i class="bi bi-check-lg me-2"></i>Save All Configurations
-    </button>
+    <div class="text-center mb-3">
+        <button class="btn btn-success save-all-btn" id="saveAllBtn" style="display:none;">
+            <i class="bi bi-check-lg me-2"></i>Save All Configurations
+        </button>
+    </div>
 
     <div class="row g-3">
         <!-- Left Panel: Users & Groups -->
@@ -190,13 +190,13 @@
                 <div class="tab-content">
                     <div class="tab-pane fade show active" id="groupsTab">
                         <div id="groupsList"></div>
-                    </div>
+                            </div>
                     <div class="tab-pane fade" id="usersTab">
                         <div id="usersList"></div>
+                            </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
-        </div>
 
         <!-- Center: Canvas Area -->
         <div class="col-12 col-lg-6">
@@ -206,15 +206,15 @@
                     <p class="mb-0">Click "Add Container" to start</p>
                     <p class="small">Drag templates and recipients into containers</p>
                 </div>
-            </div>
-        </div>
+                    </div>
+                    </div>
 
         <!-- Right Panel: Templates -->
         <div class="col-12 col-lg-3">
             <div class="source-panel">
                 <div class="source-panel-header" style="background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);">
                     <i class="bi bi-whatsapp me-2"></i>WA Templates
-                </div>
+                    </div>
                 <div class="p-2">
                     <input type="text" class="form-control form-control-sm mb-2" id="searchTemplates" placeholder="🔍 Search...">
                 </div>
@@ -250,10 +250,10 @@
                 <button type="button" class="btn btn-primary" id="confirmCreateContainer">
                     <i class="bi bi-plus-circle me-2"></i>Create Container
                 </button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 @endsection
 
 @section('js')
