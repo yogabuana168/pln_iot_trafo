@@ -124,7 +124,14 @@
       }
 
       .#{$customPrefix}-nav-link {
-        padding: 12px 26px 12px 59px;
+        padding: 12px 20px 12px 52px; // Kurangi padding kiri dari 59px ke 52px
+        
+        // Allow text to wrap jika terlalu panjang
+        .#{$customPrefix}-nav-content {
+          white-space: normal !important; // Override nowrap
+          word-wrap: break-word;
+          line-height: 1.4;
+        }
 
         &::before {
           content: "";
