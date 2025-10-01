@@ -93,6 +93,9 @@ document.addEventListener('DOMContentLoaded', function(){
       const gps = (r.koordinat_lat && r.koordinat_long) ? `${r.koordinat_lat}, ${r.koordinat_long}` : '-';
       const typeStr = r.type ? `${r.type.kapasitas_kva||''} kVA` : '-';
       const garduStr = r.gardu_induk ? `${r.gardu_induk.nama_gi||''}` : (r.gardu || '-');
+      console.log('Transformator data:', r);
+      console.log('Gardu Induk data:', r.gardu_induk);
+      console.log('Gardu String:', garduStr);
       return `
       <tr data-id="${r.id}">
         <td><input type="checkbox" class="row-check form-check-input"></td>
