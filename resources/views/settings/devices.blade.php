@@ -69,6 +69,69 @@
         </div>
     </div>
 </div>
+
+<!-- Gardu Induk Section -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <h5 class="card-title mb-0"><i class="ri ri-building-line me-2"></i>Data Gardu Induk</h5>
+                <span class="text-muted">Kelola data gardu induk</span>
+            </div>
+            <div class="card-body">
+                <div class="row g-2 mb-3">
+                    <div class="col-12 col-md-3">
+                        <div class="input-group input-group-sm">
+                            <select class="form-select" id="garduBulkAction">
+                                <option value="">No Action</option>
+                                <option value="delete">Delete</option>
+                            </select>
+                            <button class="btn btn-outline-primary" id="garduApplyBulk">Apply</button>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-2">
+                        <select class="form-select form-select-sm" id="garduPerPage">
+                            <option value="10">10</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-4 ms-auto">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control" id="garduSearch" placeholder="Search nama gardu/lokasi...">
+                            <button class="btn btn-primary" id="garduCreateBtn"><i class="bi bi-plus-lg me-1"></i>Create</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead class="table-primary">
+                            <tr>
+                                <th style="width:32px"><input type="checkbox" id="garduSelectAll" class="form-check-input"></th>
+                                <th style="width:200px">Nama Gardu Induk</th>
+                                <th style="width:250px">Alamat</th>
+                                <th style="width:120px">Kode Gardu</th>
+                                <th style="width:100px">Kapasitas (MVA)</th>
+                                <th style="width:120px">Tegangan (kV)</th>
+                                <th style="width:100px">Status</th>
+                                <th style="width:150px">Tanggal Operasi</th>
+                                <th style="width:120px" class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="garduTbody"></tbody>
+                    </table>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-3" id="garduPager">
+                    <small class="text-muted" id="garduSummary"></small>
+                    <div class="btn-group btn-group-sm" id="garduNav"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @section('js')
@@ -275,6 +338,172 @@ document.addEventListener('DOMContentLoaded', function(){
 
   // init
   fetchList();
+
+  // ==================== GARDU INDUK FUNCTIONALITY ====================
+  const garduTbody = document.getElementById('garduTbody');
+  const garduSearch = document.getElementById('garduSearch');
+  const garduPerPage = document.getElementById('garduPerPage');
+  const garduSelectAll = document.getElementById('garduSelectAll');
+  const garduBulkSel = document.getElementById('garduBulkAction');
+  const garduBulkBtn = document.getElementById('garduApplyBulk');
+  const garduNav = document.getElementById('garduNav');
+  const garduSummary = document.getElementById('garduSummary');
+  const garduCreateBtn = document.getElementById('garduCreateBtn');
+
+  let garduState = { page: 1, q: '', per: 10 };
+
+  function fetchGarduList(){
+    const url = `/api/gardu-induk/list?page=${garduState.page}&q=${encodeURIComponent(garduState.q)}&per_page=${garduState.per}`;
+    fetch(url).then(r=>r.json()).then(renderGardu);
+  }
+
+  function renderGardu(p){
+    const rows = (p.data||[]).map(r => `
+      <tr data-id="${r.id}">
+        <td><input type="checkbox" class="row-check form-check-input"></td>
+        <td>${escapeHtml(r.nama_gardu)}</td>
+        <td>${escapeHtml(r.alamat ?? '')}</td>
+        <td>${escapeHtml(r.kode_gardu ?? '')}</td>
+        <td>${escapeHtml(r.kapasitas_mva ?? '')}</td>
+        <td>${escapeHtml(r.tegangan_kv ?? '')}</td>
+        <td><span class="badge ${r.status === 'aktif' ? 'bg-success' : 'bg-secondary'}">${escapeHtml(r.status ?? '')}</span></td>
+        <td>${escapeHtml(r.tanggal_operasi ? new Date(r.tanggal_operasi).toLocaleDateString('id-ID') : '')}</td>
+        <td class="text-end">
+          <button class="btn btn-sm btn-outline-secondary me-1" onclick="return garduEdit(${r.id})"><i class="bi bi-pencil"></i></button>
+          <button class="btn btn-sm btn-outline-danger" onclick="return garduDelete(${r.id})"><i class="bi bi-trash"></i></button>
+        </td>
+      </tr>`).join('');
+    garduTbody.innerHTML = rows || '<tr><td colspan="9" class="text-center text-muted py-4">No data</td></tr>';
+    garduSummary.textContent = `Showing ${p.from||0}-${p.to||0} of ${p.total||0}`;
+    renderGarduPager(p);
+  }
+
+  function renderGarduPager(p){
+    garduNav.innerHTML = '';
+    const mk = (label, disabled, page) => `<button class="btn btn-outline-secondary ${disabled?'disabled':''}" data-page="${page}">${label}</button>`;
+    garduNav.insertAdjacentHTML('beforeend', mk('«', !p.prev_page_url, 1));
+    garduNav.insertAdjacentHTML('beforeend', mk('‹', !p.prev_page_url, Math.max(1,(p.current_page||1)-1)));
+    garduNav.insertAdjacentHTML('beforeend', `<span class="btn btn-outline-secondary disabled">${p.current_page||1}/${p.last_page||1}</span>`);
+    garduNav.insertAdjacentHTML('beforeend', mk('›', !p.next_page_url, Math.min(p.last_page||1,(p.current_page||1)+1)));
+    garduNav.insertAdjacentHTML('beforeend', mk('»', !p.next_page_url, p.last_page||1));
+    garduNav.querySelectorAll('button[data-page]').forEach(b=>{
+      b.addEventListener('click', ()=>{ if(b.classList.contains('disabled')) return; garduState.page=parseInt(b.dataset.page,10)||1; fetchGarduList(); });
+    });
+  }
+
+  garduSelectAll.addEventListener('change', ()=>{ garduTbody.querySelectorAll('.row-check').forEach(cb=> cb.checked = garduSelectAll.checked); });
+  garduBulkBtn.addEventListener('click', ()=>{
+    const act = garduBulkSel.value; if(!act) return;
+    const ids = Array.from(garduTbody.querySelectorAll('.row-check:checked')).map(cb=>cb.closest('tr').dataset.id);
+    if(ids.length===0) return;
+    fetch('/api/gardu-induk/bulk', { method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content}, body: JSON.stringify({ action: act, ids }) })
+      .then(r=>r.json()).then(()=> fetchGarduList());
+  });
+
+  garduCreateBtn.addEventListener('click', ()=> openGarduModal());
+  window.garduEdit = function(id){
+    const tr = garduTbody.querySelector(`tr[data-id="${id}"]`);
+    openGarduModal({ id,
+      nama_gardu: tr.children[1].textContent.trim(),
+      alamat: tr.children[2].textContent.trim(),
+      kode_gardu: tr.children[3].textContent.trim(),
+      kapasitas_mva: tr.children[4].textContent.trim(),
+      tegangan_kv: tr.children[5].textContent.trim(),
+      status: tr.children[6].textContent.trim().toLowerCase(),
+      tanggal_operasi: tr.children[7].textContent.trim(),
+    });
+    return false;
+  };
+  window.garduDelete = function(id){ if(!confirm('Delete this gardu induk?')) return false; fetch('/api/gardu-induk/delete',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content,}, body: JSON.stringify({id})}).then(r=>r.json()).then(()=>fetchGarduList()); return false; };
+
+  // Gardu Induk Modal
+  const garduModalEl = document.createElement('div');
+  garduModalEl.className='modal fade'; garduModalEl.id='garduModal'; garduModalEl.innerHTML=`
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Data Gardu Induk</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <form id="garduForm">
+          <input type="hidden" id="gdId">
+          <div class="row">
+            <div class="col-md-6 mb-3"><label class="form-label">Nama Gardu Induk *</label><input type="text" class="form-control form-control-sm" id="gdNama" required></div>
+            <div class="col-md-6 mb-3"><label class="form-label">Kode Gardu</label><input type="text" class="form-control form-control-sm" id="gdKode"></div>
+            <div class="col-12 mb-3"><label class="form-label">Alamat *</label><textarea class="form-control form-control-sm" id="gdAlamat" rows="2" required></textarea></div>
+            <div class="col-md-4 mb-3"><label class="form-label">Kapasitas (MVA)</label>
+              <select class="form-select form-select-sm" id="gdKapasitas">
+                <option value="">Pilih Kapasitas</option>
+                <option value="10">10 MVA</option>
+                <option value="20">20 MVA</option>
+                <option value="30">30 MVA</option>
+                <option value="40">40 MVA</option>
+                <option value="50">50 MVA</option>
+                <option value="60">60 MVA</option>
+                <option value="75">75 MVA</option>
+                <option value="100">100 MVA</option>
+                <option value="125">125 MVA</option>
+                <option value="150">150 MVA</option>
+                <option value="200">200 MVA</option>
+              </select>
+            </div>
+            <div class="col-md-4 mb-3"><label class="form-label">Tegangan (kV)</label>
+              <select class="form-select form-select-sm" id="gdTegangan">
+                <option value="">Pilih Tegangan</option>
+                <option value="20">20 kV</option>
+                <option value="150">150 kV</option>
+                <option value="275">275 kV</option>
+                <option value="500">500 kV</option>
+              </select>
+            </div>
+            <div class="col-md-4 mb-3"><label class="form-label">Status *</label>
+              <select class="form-select form-select-sm" id="gdStatus" required>
+                <option value="">Pilih Status</option>
+                <option value="aktif">Aktif</option>
+                <option value="non_aktif">Non Aktif</option>
+                <option value="maintenance">Maintenance</option>
+              </select>
+            </div>
+            <div class="col-md-6 mb-3"><label class="form-label">Tanggal Operasi</label><input type="date" class="form-control form-control-sm" id="gdTanggal"></div>
+            <div class="col-md-6 mb-3"><label class="form-label">Koordinat GPS</label><input type="text" class="form-control form-control-sm" id="gdKoordinat" placeholder="Lat, Lng"></div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" id="gdSave">Save</button></div>
+    </div>
+  </div>`;
+  document.body.appendChild(garduModalEl);
+  const garduModal = new bootstrap.Modal(garduModalEl, { backdrop: 'static', keyboard: false });
+  document.getElementById('gdSave').addEventListener('click', ()=>{
+    const payload={ id: document.getElementById('gdId').value||undefined,
+      nama_gardu: document.getElementById('gdNama').value.trim(),
+      alamat: document.getElementById('gdAlamat').value.trim(),
+      kode_gardu: document.getElementById('gdKode').value.trim()||null,
+      kapasitas_mva: document.getElementById('gdKapasitas').value?parseFloat(document.getElementById('gdKapasitas').value):null,
+      tegangan_kv: document.getElementById('gdTegangan').value?parseFloat(document.getElementById('gdTegangan').value):null,
+      status: document.getElementById('gdStatus').value.trim(),
+      tanggal_operasi: document.getElementById('gdTanggal').value||null,
+      koordinat: document.getElementById('gdKoordinat').value.trim()||null };
+    if(!payload.nama_gardu || !payload.alamat || !payload.status) return;
+    fetch('/api/gardu-induk/save',{ method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify(payload)}).then(r=>r.json()).then(()=>{ garduModal.hide(); fetchGarduList(); });
+  });
+  function openGarduModal(data){ 
+    document.getElementById('gdId').value=data?.id||''; 
+    document.getElementById('gdNama').value=data?.nama_gardu||''; 
+    document.getElementById('gdKode').value=data?.kode_gardu||''; 
+    document.getElementById('gdAlamat').value=data?.alamat||''; 
+    document.getElementById('gdKapasitas').value=data?.kapasitas_mva||''; 
+    document.getElementById('gdTegangan').value=data?.tegangan_kv||''; 
+    document.getElementById('gdStatus').value=data?.status||''; 
+    document.getElementById('gdTanggal').value=data?.tanggal_operasi||''; 
+    document.getElementById('gdKoordinat').value=data?.koordinat||''; 
+    garduModal.show(); 
+  }
+
+  // Gardu Induk Events
+  garduSearch.addEventListener('input', ()=>{ garduState.page=1; garduState.q=garduSearch.value; fetchGarduList(); });
+  garduPerPage.addEventListener('change', ()=>{ garduState.page=1; garduState.per=parseInt(garduPerPage.value,10)||10; fetchGarduList(); });
+
+  // init gardu
+  fetchGarduList();
 });
 </script>
 @endsection
