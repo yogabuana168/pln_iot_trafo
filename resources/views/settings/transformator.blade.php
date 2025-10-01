@@ -217,7 +217,6 @@ document.addEventListener('DOMContentLoaded', function(){
       tahun_operasi: parseInt(document.getElementById('tfTahunOperasi').value)||null,
       lokasi: document.getElementById('tfLokasi').value.trim()||null,
       penyulang: document.getElementById('tfPenyulang').value.trim()||null,
-      gardu: document.getElementById('tfGardu').value.trim()||null,
       status: document.getElementById('tfStatus').value.trim()||null,
       keterangan: document.getElementById('tfKeterangan').value.trim()||null,
       type_id: document.getElementById('tfTypeId').value||null,
@@ -263,18 +262,36 @@ document.addEventListener('DOMContentLoaded', function(){
   }
   
   function openModal(data){ 
-    document.getElementById('tfId').value=data?.id||''; 
-    document.getElementById('tfKodeAset').value=data?.kode_aset||''; 
-    document.getElementById('tfNomorSeri').value=data?.nomor_seri||''; 
-    document.getElementById('tfMerk').value=data?.merk||''; 
-    document.getElementById('tfTahunOperasi').value=data?.tahun_operasi||''; 
-    document.getElementById('tfPenyulang').value=data?.penyulang||''; 
-    document.getElementById('tfGardu').value=data?.gardu||''; 
-    document.getElementById('tfLokasi').value=data?.lokasi||''; 
-    document.getElementById('tfStatus').value=data?.status||''; 
-    document.getElementById('tfTypeId').value=data?.type_id||''; 
-    document.getElementById('tfGarduIndukId').value=data?.gardu_induk_id||''; 
-    document.getElementById('tfKeterangan').value=data?.keterangan||''; 
+    // Ensure modal exists before trying to access its elements
+    if (!document.getElementById('trafoModal')) {
+      console.error('Modal not found');
+      return;
+    }
+    
+    // Clear all form fields first
+    const fields = ['tfId', 'tfKodeAset', 'tfNomorSeri', 'tfMerk', 'tfTahunOperasi', 'tfPenyulang', 'tfLokasi', 'tfStatus', 'tfTypeId', 'tfGarduIndukId', 'tfKeterangan'];
+    fields.forEach(fieldId => {
+      const element = document.getElementById(fieldId);
+      if (element) {
+        element.value = '';
+      }
+    });
+    
+    // Set values if data provided
+    if (data) {
+      document.getElementById('tfId').value = data.id || ''; 
+      document.getElementById('tfKodeAset').value = data.kode_aset || ''; 
+      document.getElementById('tfNomorSeri').value = data.nomor_seri || ''; 
+      document.getElementById('tfMerk').value = data.merk || ''; 
+      document.getElementById('tfTahunOperasi').value = data.tahun_operasi || ''; 
+      document.getElementById('tfPenyulang').value = data.penyulang || ''; 
+      document.getElementById('tfLokasi').value = data.lokasi || ''; 
+      document.getElementById('tfStatus').value = data.status || ''; 
+      document.getElementById('tfTypeId').value = data.type_id || ''; 
+      document.getElementById('tfGarduIndukId').value = data.gardu_induk_id || ''; 
+      document.getElementById('tfKeterangan').value = data.keterangan || ''; 
+    }
+    
     loadTypes();
     loadGarduInduk();
     modal.show(); 
