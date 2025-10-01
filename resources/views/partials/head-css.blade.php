@@ -10,6 +10,8 @@
 <link href="{{ asset('assets/css/icons.min.css') }}" rel="stylesheet" type="text/css">
 <!-- App Css-->
 <link href="{{ asset('assets/css/app.min.css') }}" id="app-style" rel="stylesheet" type="text/css">
+<!-- Dropdown Fix Css -->
+<link href="{{ asset('assets/css/dropdown-fix.css') }}" rel="stylesheet" type="text/css">
 <style>
 /* Ensure icon-only sidebar hides labels and arrows */
 [data-sidebar="icon"] #sidebar .pe-menu-title,

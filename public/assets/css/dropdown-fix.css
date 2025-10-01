@@ -1,0 +1,25 @@
+/* Dropdown Menu Auto Width Fix - No Text Truncation */
+.dropdown-menu {
+    width: auto !important;
+    min-width: 12rem !important;
+    max-width: max-content !important;
+}
+
+.dropdown-menu .dropdown-item {
+    white-space: nowrap !important;
+    padding: 0.5rem 1.25rem !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+.dropdown-menu .dropdown-item i,
+.dropdown-menu .dropdown-item svg {
+    margin-right: 12px !important;
+    flex-shrink: 0 !important;
+}
+
+.dropdown-menu-auto {
+    width: auto !important;
+    min-width: 15rem !important;
+    max-width: 50rem !important;
+}
