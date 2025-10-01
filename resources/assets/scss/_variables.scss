@@ -1431,9 +1431,9 @@ $navbar-dark-brand-hover-color:     $navbar-dark-active-color;
 // Dropdown menu container and contents.
 
 // scss-docs-start dropdown-variables
-$dropdown-min-width:                10rem;
-$dropdown-padding-x:                .5rem;
-$dropdown-padding-y:                .5rem;
+$dropdown-min-width:                12rem; // Increased from 10rem
+$dropdown-padding-x:                .75rem; // Increased from .5rem
+$dropdown-padding-y:                .75rem; // Increased from .5rem
 $dropdown-spacer:                   .125rem;
 $dropdown-font-size:                $font-size-base;
 $dropdown-color:                    var(--#{$prefix}body-color);
@@ -1455,7 +1455,7 @@ $dropdown-link-active-bg:           var(--#{$prefix}primary);
 
 $dropdown-link-disabled-color:      var(--#{$prefix}tertiary-color);
 
-$dropdown-item-padding-y:           $spacer * .5;
+$dropdown-item-padding-y:           $spacer * .65; // Increased from .5
 $dropdown-item-padding-x:           $spacer;
 
 $dropdown-header-color:             $gray-600;
