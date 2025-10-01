@@ -227,7 +227,12 @@ document.addEventListener('DOMContentLoaded', function(){
             <div class="container-body">
                 <div class="template-slot ${container.template ? 'filled' : ''}" data-container-id="${container.id}" data-slot="template">
                     ${container.template 
-                        ? `<i class="bi bi-whatsapp me-2"></i><strong>${escapeHtml(container.template.name)}</strong>` 
+                        ? `<div class="d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-whatsapp me-2"></i><strong>${escapeHtml(container.template.name)}</strong></span>
+                            <button class="btn btn-sm btn-outline-danger" style="padding:2px 6px;" onclick="deleteTemplate(${container.id})" title="Remove template">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                           </div>` 
                         : '<small class="text-muted"><i class="bi bi-file-earmark-text"></i><br>Drop Template Here</small>'}
                 </div>
                 <div class="recipients-slot" data-container-id="${container.id}" data-slot="recipients">
@@ -347,6 +352,16 @@ document.addEventListener('DOMContentLoaded', function(){
             updateContainer(container);
             saveContainersState(); // Auto save
             showToast('Recipient removed');
+        }
+    };
+
+    window.deleteTemplate = function(containerId) {
+        const container = containers.find(c => c.id === containerId);
+        if (container && container.template) {
+            container.template = null;
+            updateContainer(container);
+            saveContainersState(); // Auto save
+            showToast('Template removed');
         }
     };
 
