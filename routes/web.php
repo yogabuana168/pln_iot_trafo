@@ -426,7 +426,6 @@ Route::get('/api/transformator', function (Request $request) {
 });
 
 Route::post('/api/transformator/save', function (Request $request) {
-    \Log::info('Transformator save request:', $request->all());
     $request->validate([
         'kode_aset' => 'required|string|max:50',
         'nomor_seri' => 'nullable|string|max:100',

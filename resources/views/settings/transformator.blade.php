@@ -93,9 +93,6 @@ document.addEventListener('DOMContentLoaded', function(){
       const gps = (r.koordinat_lat && r.koordinat_long) ? `${r.koordinat_lat}, ${r.koordinat_long}` : '-';
       const typeStr = r.type ? `${r.type.kapasitas_kva||''} kVA` : '-';
       const garduStr = r.gardu_induk ? `${r.gardu_induk.nama_gi||''}` : (r.gardu || '-');
-      console.log('Transformator data:', r);
-      console.log('Gardu Induk data:', r.gardu_induk);
-      console.log('Gardu String:', garduStr);
       return `
       <tr data-id="${r.id}">
         <td><input type="checkbox" class="row-check form-check-input"></td>
@@ -225,13 +222,10 @@ document.addEventListener('DOMContentLoaded', function(){
       type_id: document.getElementById('tfTypeId').value||null,
       gardu_induk_id: document.getElementById('tfGarduIndukId').value||null
     };
-    console.log('Payload being sent:', payload);
-    console.log('Gardu Induk ID selected:', document.getElementById('tfGarduIndukId').value);
     if(!payload.kode_aset) return;
     fetch('/api/transformator/save',{ method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify(payload)})
       .then(r=>r.json())
       .then(result=>{
-        console.log('Save result:', result);
         modal.hide(); 
         fetchList();
       })
